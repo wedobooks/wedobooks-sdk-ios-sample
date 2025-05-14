@@ -1,0 +1,15 @@
+{
+  "originHash" : "c3bd8af3268adf3e9b18622a790f507fe8d4e9e5e4c3bfbf81bcc19216aed991",
+  "pins" : [
+    {
+      "identity" : "wedobooks-sdk-ios-spm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/wedobooks/wedobooks-sdk-ios-spm",
+      "state" : {
+        "revision" : "f9731c9bbae05c38895ae931e31bb7f506ed873c",
+        "version" : "0.1.0"
+      }
+    }
+  ],
+  "version" : 3
+}

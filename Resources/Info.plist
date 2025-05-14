@@ -29,5 +29,7 @@
 	<string>$(API_KEY)</string>
 	<key>API_SECRET</key>
 	<string>$(API_SECRET)</string>
+	<key>FirebaseAutomaticScreenReportingEnabled</key>
+	<false/>
 </dict>
 </plist>
