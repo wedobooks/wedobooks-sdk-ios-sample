@@ -1,0 +1,163 @@
+//
+//  LoginViewController.swift
+//  WeDoBooksSDKSample
+//
+//  Created by Bo Gosmer on 06/06/2025.
+//
+
+import UIKit
+import WeDoBooksSDK
+
+protocol LoginViewControllerDelegate: AnyObject {
+    func didLogin()
+}
+
+class LoginViewController: UIViewController {
+    private let titleLabel: UILabel = {
+        let result = UILabel()
+        result.textAlignment = .center
+        result.font = .systemFont(ofSize: 24, weight: .bold)
+        result.text = "Login"
+        result.translatesAutoresizingMaskIntoConstraints = false
+        return result
+    }()
+
+    private let uidTextField: UITextField = {
+        let result = UITextField()
+        result.borderStyle = .line
+        result.translatesAutoresizingMaskIntoConstraints = false
+        result.placeholder = "User ID"
+        result.clearButtonMode = .always
+        result.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 8, height: 0))
+        result.leftViewMode = .always
+        result.font = .systemFont(ofSize: 15, weight: .regular)
+        return result
+    }()
+    
+    private let loginButton: UIButton = {
+        let result = UIButton(type: .system)
+        result.setTitle("Login", for: .normal)
+        result.setTitleColor(.black, for: .normal)
+        result.setTitleColor(.gray, for: .disabled)
+        result.translatesAutoresizingMaskIntoConstraints = false
+        result.layer.borderColor = UIColor.black.cgColor
+        result.layer.borderWidth = 1
+        result.isEnabled = false
+        return result
+    }()
+    
+    var wdb: WeDoBooksFacade?
+    weak var delegate: LoginViewControllerDelegate?
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        view.backgroundColor = .white
+        
+        uidTextField.delegate = self
+        uidTextField.addTarget(self, action: #selector(textFieldDidChange), for: .editingChanged)
+        
+        loginButton.addTarget(self, action: #selector(loginButtonTapped), for: .touchUpInside)
+        
+#if targetEnvironment(simulator)
+        uidTextField.text = "ibT544hbWpercMXzw0moUKC64yg1"
+        loginButton.isEnabled = true
+#endif
+        
+        setupViewHierarchy()
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        
+        uidTextField.becomeFirstResponder()
+    }
+    
+    private func setupViewHierarchy() {
+        view.addSubview(titleLabel)
+        view.addSubview(uidTextField)
+        view.addSubview(loginButton)
+        
+        NSLayoutConstraint.activate([
+            titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 80),
+            titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+        ])
+        
+        NSLayoutConstraint.activate([
+            uidTextField.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 40),
+            uidTextField.widthAnchor.constraint(equalToConstant: 300),
+            uidTextField.heightAnchor.constraint(equalToConstant: 44),
+            uidTextField.centerXAnchor.constraint(equalTo: view.centerXAnchor)
+        ])
+        
+        NSLayoutConstraint.activate([
+            loginButton.topAnchor.constraint(equalTo: uidTextField.bottomAnchor, constant: 40),
+            loginButton.widthAnchor.constraint(equalTo: uidTextField.widthAnchor),
+            loginButton.heightAnchor.constraint(equalTo: uidTextField.heightAnchor),
+            loginButton.centerXAnchor.constraint(equalTo: view.centerXAnchor)
+        ])
+    }
+    
+    @objc private func textFieldDidChange(_ textField: UITextField) {
+        loginButton.isEnabled = !(textField.text?.isEmpty ?? true)
+    }
+    
+    @objc private func loginButtonTapped(_ button: UIButton) {
+        uidTextField.resignFirstResponder()
+        
+        loginButton.isEnabled = false
+        uidTextField.isEnabled = false
+        
+        SpinnerHUD.show(in: view)
+        
+        Task {
+            let url = "https://europe-west3-wedobooks-sdk.cloudfunctions.net/Sdk-Demo-get_auth_token"
+            let uid = uidTextField.text ?? ""
+            var request = URLRequest(url: URL(string: url)!)
+            
+            let body = try! JSONSerialization.data(withJSONObject: ["uid": uid], options: [])
+            
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("\(body.count)", forHTTPHeaderField: "Content-Length")
+            request.httpBody = body
+            
+            do {
+                let config = URLSessionConfiguration.ephemeral
+                let session = URLSession(configuration: config)
+                let (data, _) = try await session.data(for: request)
+                let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: String]
+                let customToken = json?["token"] as? String
+                print("Received token: \(customToken ?? "<nil>")")
+                if let customToken {
+                    let signInResult = await wdb?.user.signUserIn(token: customToken)
+                    switch signInResult {
+                    case .none:
+                        print("None")
+                    case .success:
+                        delegate?.didLogin()
+                        SpinnerHUD.hide()
+                    case .failure:
+                        print("Failure")
+                    }
+                }
+            } catch {
+                print("Request failed with error: \(error)")
+            }
+        }
+    }
+}
+
+extension LoginViewController: UITextFieldDelegate {
+    func textField(
+        _ textField: UITextField,
+        shouldChangeCharactersIn range: NSRange,
+        replacementString string: String
+    ) -> Bool {
+        if let currentText = textField.text, let textRange = Range(range, in: currentText) {
+            let updatedText = currentText.replacingCharacters(in: textRange, with: string)
+            loginButton.isEnabled = !updatedText.isEmpty
+        }
+        return true
+    }
+}

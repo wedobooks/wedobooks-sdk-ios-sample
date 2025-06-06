@@ -1,0 +1,144 @@
+//
+//  OpenBookViewController.swift
+//  WeDoBooksSDKSample
+//
+//  Created by Bo Gosmer on 06/06/2025.
+//
+
+import UIKit
+import WeDoBooksSDK
+
+protocol OpenBookViewControllerDelegate: AnyObject {
+    func didLogout()
+}
+
+class OpenBookViewController: UIViewController {
+    private let titleLabel: UILabel = {
+        let result = UILabel()
+        result.textAlignment = .center
+        result.font = .systemFont(ofSize: 24, weight: .bold)
+        result.text = "Open book"
+        result.translatesAutoresizingMaskIntoConstraints = false
+        return result
+    }()
+    
+    private let openAudioBookButton: UIButton = {
+        let result = UIButton(type: .system)
+        result.setTitle("Audio book", for: .normal)
+        result.setTitleColor(.black, for: .normal)
+        result.setTitleColor(.gray, for: .disabled)
+        result.translatesAutoresizingMaskIntoConstraints = false
+        result.layer.borderColor = UIColor.black.cgColor
+        result.layer.borderWidth = 1
+        return result
+    }()
+    
+    private let openEBookButton: UIButton = {
+        let result = UIButton(type: .system)
+        result.setTitle("Ebook", for: .normal)
+        result.setTitleColor(.black, for: .normal)
+        result.setTitleColor(.gray, for: .disabled)
+        result.translatesAutoresizingMaskIntoConstraints = false
+        result.layer.borderColor = UIColor.black.cgColor
+        result.layer.borderWidth = 1
+        return result
+    }()
+    
+    private let logoutButton: UIButton = {
+        let result = UIButton(type: .system)
+        result.setTitle("Logout", for: .normal)
+        result.setTitleColor(.black, for: .normal)
+        result.setTitleColor(.gray, for: .disabled)
+        result.translatesAutoresizingMaskIntoConstraints = false
+        result.layer.borderColor = UIColor.black.cgColor
+        result.layer.borderWidth = 1
+        return result
+    }()
+    
+    var wdb: WeDoBooksFacade?
+    weak var delegate: OpenBookViewControllerDelegate?
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        view.backgroundColor = .white
+        
+        openAudioBookButton.addTarget(self, action: #selector(audioBookButtonTapped), for: .touchUpInside)
+        openEBookButton.addTarget(self, action: #selector(ebookButtonTapped), for: .touchUpInside)
+        logoutButton.addTarget(self, action: #selector(logoutButtonTapped), for: .touchUpInside)
+        
+        setupViewHierarchy()
+    }
+    
+    private func setupViewHierarchy() {
+        view.addSubview(titleLabel)
+        view.addSubview(openAudioBookButton)
+        view.addSubview(openEBookButton)
+        view.addSubview(logoutButton)
+        
+        NSLayoutConstraint.activate([
+            titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 80),
+            titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+        ])
+        
+        NSLayoutConstraint.activate([
+            openAudioBookButton.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 40),
+            openAudioBookButton.widthAnchor.constraint(equalToConstant: 300),
+            openAudioBookButton.heightAnchor.constraint(equalToConstant: 44),
+            openAudioBookButton.centerXAnchor.constraint(equalTo: view.centerXAnchor)
+        ])
+        
+        NSLayoutConstraint.activate([
+            openEBookButton.topAnchor.constraint(equalTo: openAudioBookButton.bottomAnchor, constant: 40),
+            openEBookButton.widthAnchor.constraint(equalTo: openAudioBookButton.widthAnchor),
+            openEBookButton.heightAnchor.constraint(equalTo: openAudioBookButton.heightAnchor),
+            openEBookButton.centerXAnchor.constraint(equalTo: view.centerXAnchor)
+        ])
+        
+        NSLayoutConstraint.activate([
+            logoutButton.topAnchor.constraint(equalTo: openEBookButton.bottomAnchor, constant: 40),
+            logoutButton.widthAnchor.constraint(equalTo: openEBookButton.widthAnchor),
+            logoutButton.heightAnchor.constraint(equalTo: openEBookButton.heightAnchor),
+            logoutButton.centerXAnchor.constraint(equalTo: view.centerXAnchor)
+        ])
+    }
+    
+    @objc private func audioBookButtonTapped(_ button: UIButton) {
+        openAudioBookButton.isEnabled = false
+        openEBookButton.isEnabled = false
+        logoutButton.isEnabled = false
+        
+        Task { @MainActor in
+            let checkoutResult = await wdb?.books.checkoutBook(with: "9780297395461")
+            switch checkoutResult {
+            case .success(let checkout):
+                do {
+                    try wdb?.books.openCheckout(checkout, presentedBy: self)
+                } catch {
+                    print("open checkout failed: \(error)")
+                    openAudioBookButton.isEnabled = true
+                    openEBookButton.isEnabled = true
+                    logoutButton.isEnabled = true
+                }
+            case .failure(let error):
+                print("Checkout audio book failed: \(error)")
+                fallthrough
+            default:
+                openAudioBookButton.isEnabled = true
+                openEBookButton.isEnabled = true
+                logoutButton.isEnabled = true
+            }
+        }
+    }
+    
+    @objc private func ebookButtonTapped(_ button: UIButton) {
+        print("Ebook tapped")
+    }
+    
+    @objc private func logoutButtonTapped(_ button: UIButton) {
+        print("Logout tapped")
+        
+        wdb?.user.signUserOut()
+        delegate?.didLogout()
+    }
+}
