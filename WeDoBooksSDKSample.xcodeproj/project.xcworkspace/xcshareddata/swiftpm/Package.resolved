@@ -1,13 +1,22 @@
 {
-  "originHash" : "c3bd8af3268adf3e9b18622a790f507fe8d4e9e5e4c3bfbf81bcc19216aed991",
+  "originHash" : "512f1b9832606b59f7b79db5509659db7f7e9d1867bbbc3ba2ff7f7f193e968d",
   "pins" : [
+    {
+      "identity" : "colibrio-pkg-spm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://bitbucket.org/colibrio/colibrio-pkg-spm",
+      "state" : {
+        "revision" : "9c57417b761cc75fb32c5ad2bf88db359b8d07c5",
+        "version" : "4.3.1"
+      }
+    },
     {
       "identity" : "wedobooks-sdk-ios-spm",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/wedobooks/wedobooks-sdk-ios-spm",
       "state" : {
-        "revision" : "423f3f1a0e58bc8bd9e239f15e547663f7f0f1ac",
-        "version" : "0.1.1"
+        "revision" : "18cf1728e4e32d244fdd00e97fad64a1001418ff",
+        "version" : "0.1.4"
       }
     }
   ],

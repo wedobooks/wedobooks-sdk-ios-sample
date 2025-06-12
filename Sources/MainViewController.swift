@@ -47,23 +47,20 @@ class MainViewController: BaseViewController {
 
     private func setupWDBFacade() {
         guard let colibrioKey = Bundle.main.infoDictionary?["API_KEY"] as? String,
-           let colibrioSecret = Bundle.main.infoDictionary?["API_SECRET"] as? String,
-           let salt = Bundle.main.infoDictionary?["SALT"] as? String,
-           let passwordExt = Bundle.main.infoDictionary?["PASSWORD_EXT"] as? String else {
+           let colibrioSecret = Bundle.main.infoDictionary?["API_SECRET"] as? String else {
             return
         }
         
         wdb = WeDoBooksFacade.shared
         try! wdb?.setup(
             colibrioKey: colibrioKey,
-            colibrioSecret: colibrioSecret,
-            wdbSalt: salt,
-            wdbPasswordExt: passwordExt
+            colibrioSecret: colibrioSecret
         )
         wdb?.styling.readerLogoHTML = logoHTML
         wdb?.styling.readerLogoImageName = "ReaderLogo"
         wdb?.styling.lightTheme = lightTheme
         wdb?.styling.darkTheme = darkTheme
+        wdb?.localization.setLanguage(.english)
     }
     
     private func updateLoginViewControllerVisibility(_ show: Bool) {

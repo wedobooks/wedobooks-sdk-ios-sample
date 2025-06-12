@@ -5,6 +5,7 @@
 //  Created by Bo Gosmer on 06/06/2025.
 //
 
+import Combine
 import UIKit
 import WeDoBooksSDK
 
@@ -13,6 +14,8 @@ protocol OpenBookViewControllerDelegate: AnyObject {
 }
 
 class OpenBookViewController: UIViewController {
+    private var cancellables: Set<AnyCancellable> = []
+    
     private let titleLabel: UILabel = {
         let result = UILabel()
         result.textAlignment = .center
@@ -68,6 +71,15 @@ class OpenBookViewController: UIViewController {
         logoutButton.addTarget(self, action: #selector(logoutButtonTapped), for: .touchUpInside)
         
         setupViewHierarchy()
+        
+        wdb?.events
+            .bookWillClose
+            .sink { [weak self] _ in
+                self?.openAudioBookButton.isEnabled = true
+                self?.openEBookButton.isEnabled = true
+                self?.logoutButton.isEnabled = true
+            }
+            .store(in: &cancellables)
     }
     
     private func setupViewHierarchy() {
@@ -104,12 +116,27 @@ class OpenBookViewController: UIViewController {
     }
     
     @objc private func audioBookButtonTapped(_ button: UIButton) {
+        openBook(isbn: "9780297395461")
+    }
+    
+    @objc private func ebookButtonTapped(_ button: UIButton) {
+        openBook(isbn: "9780269038266")
+    }
+    
+    @objc private func logoutButtonTapped(_ button: UIButton) {
+        print("Logout tapped")
+        
+        wdb?.user.signUserOut()
+        delegate?.didLogout()
+    }
+    
+    private func openBook(isbn: String) {
         openAudioBookButton.isEnabled = false
         openEBookButton.isEnabled = false
         logoutButton.isEnabled = false
         
         Task { @MainActor in
-            let checkoutResult = await wdb?.books.checkoutBook(with: "9780297395461")
+            let checkoutResult = await wdb?.books.checkoutBook(with: isbn)
             switch checkoutResult {
             case .success(let checkout):
                 do {
@@ -121,7 +148,7 @@ class OpenBookViewController: UIViewController {
                     logoutButton.isEnabled = true
                 }
             case .failure(let error):
-                print("Checkout audio book failed: \(error)")
+                print("Checkout book failed: \(error)")
                 fallthrough
             default:
                 openAudioBookButton.isEnabled = true
@@ -129,16 +156,5 @@ class OpenBookViewController: UIViewController {
                 logoutButton.isEnabled = true
             }
         }
-    }
-    
-    @objc private func ebookButtonTapped(_ button: UIButton) {
-        print("Ebook tapped")
-    }
-    
-    @objc private func logoutButtonTapped(_ button: UIButton) {
-        print("Logout tapped")
-        
-        wdb?.user.signUserOut()
-        delegate?.didLogout()
     }
 }
