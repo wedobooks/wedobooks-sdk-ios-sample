@@ -7,8 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		6F79E1EE2DCA29320062AF63 /* WeDoBooksSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 6F79E1ED2DCA29320062AF63 /* WeDoBooksSDK */; };
-		6FE383D42DFB2B3900259ADA /* ColibrioReader in Frameworks */ = {isa = PBXBuildFile; productRef = 6FE383D32DFB2B3900259ADA /* ColibrioReader */; };
+		6FF86E062DFC4019002F3953 /* WeDoBooks in Frameworks */ = {isa = PBXBuildFile; productRef = 6FF86E052DFC4019002F3953 /* WeDoBooks */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -64,8 +63,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6FE383D42DFB2B3900259ADA /* ColibrioReader in Frameworks */,
-				6F79E1EE2DCA29320062AF63 /* WeDoBooksSDK in Frameworks */,
+				6FF86E062DFC4019002F3953 /* WeDoBooks in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +76,7 @@
 				6FF358ED2D8DA4180012A988 /* README.md */,
 				6FF3588A2D8D9D730012A988 /* Sources */,
 				6FF358762D8D9D4A0012A988 /* Resources */,
+				6FF86E042DFC4019002F3953 /* Frameworks */,
 				6FF358592D8D96AB0012A988 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -88,6 +87,13 @@
 				6FF358582D8D96AB0012A988 /* WeDoBooksSDKSample.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		6FF86E042DFC4019002F3953 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -111,8 +117,7 @@
 			);
 			name = WeDoBooksSDKSample;
 			packageProductDependencies = (
-				6F79E1ED2DCA29320062AF63 /* WeDoBooksSDK */,
-				6FE383D32DFB2B3900259ADA /* ColibrioReader */,
+				6FF86E052DFC4019002F3953 /* WeDoBooks */,
 			);
 			productName = WeDoBooksSDKSample;
 			productReference = 6FF358582D8D96AB0012A988 /* WeDoBooksSDKSample.app */;
@@ -144,7 +149,6 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				6F79E1EC2DCA29320062AF63 /* XCRemoteSwiftPackageReference "wedobooks-sdk-ios-spm" */,
-				6FE383D22DFB2B3900259ADA /* XCRemoteSwiftPackageReference "colibrio-pkg-spm" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6FF358592D8D96AB0012A988 /* Products */;
@@ -387,29 +391,16 @@
 			repositoryURL = "https://github.com/wedobooks/wedobooks-sdk-ios-spm";
 			requirement = {
 				kind = exactVersion;
-				version = 0.1.4;
-			};
-		};
-		6FE383D22DFB2B3900259ADA /* XCRemoteSwiftPackageReference "colibrio-pkg-spm" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://bitbucket.org/colibrio/colibrio-pkg-spm";
-			requirement = {
-				kind = exactVersion;
-				version = 4.3.1;
+				version = 0.1.6;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		6F79E1ED2DCA29320062AF63 /* WeDoBooksSDK */ = {
+		6FF86E052DFC4019002F3953 /* WeDoBooks */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 6F79E1EC2DCA29320062AF63 /* XCRemoteSwiftPackageReference "wedobooks-sdk-ios-spm" */;
-			productName = WeDoBooksSDK;
-		};
-		6FE383D32DFB2B3900259ADA /* ColibrioReader */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 6FE383D22DFB2B3900259ADA /* XCRemoteSwiftPackageReference "colibrio-pkg-spm" */;
-			productName = ColibrioReader;
+			productName = WeDoBooks;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
