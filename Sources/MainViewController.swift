@@ -46,8 +46,8 @@ class MainViewController: BaseViewController {
     }
 
     private func setupWDBFacade() {
-        guard let colibrioKey = Bundle.main.infoDictionary?["API_KEY"] as? String,
-           let colibrioSecret = Bundle.main.infoDictionary?["API_SECRET"] as? String else {
+        guard let colibrioKey = Bundle.main.infoDictionary?["COLIBRIO_API_KEY"] as? String,
+           let colibrioSecret = Bundle.main.infoDictionary?["COLIBRIO_API_SECRET"] as? String else {
             return
         }
         
