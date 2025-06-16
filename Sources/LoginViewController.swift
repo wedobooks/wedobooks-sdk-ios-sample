@@ -18,30 +18,31 @@ class LoginViewController: UIViewController {
         result.textAlignment = .center
         result.font = .systemFont(ofSize: 24, weight: .bold)
         result.text = "Login"
+        result.textColor = .label
         result.translatesAutoresizingMaskIntoConstraints = false
         return result
     }()
 
     private let uidTextField: UITextField = {
         let result = UITextField()
-        result.borderStyle = .line
         result.translatesAutoresizingMaskIntoConstraints = false
+        result.borderStyle = .none
+        result.backgroundColor = .secondarySystemBackground
+        result.textColor = .label
+        result.tintColor = .systemBlue  // cursor/caret color
+        result.layer.borderWidth = 1
+        result.layer.borderColor = UIColor.separator.cgColor
+        result.layer.masksToBounds = true
         result.placeholder = "User ID"
         result.clearButtonMode = .always
         result.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 8, height: 0))
         result.leftViewMode = .always
-        result.font = .systemFont(ofSize: 15, weight: .regular)
         return result
     }()
     
     private let loginButton: UIButton = {
-        let result = UIButton(type: .system)
-        result.setTitle("Login", for: .normal)
-        result.setTitleColor(.black, for: .normal)
-        result.setTitleColor(.gray, for: .disabled)
+        let result = UIButton(configuration: .standardConfiguration(for: "Login"))
         result.translatesAutoresizingMaskIntoConstraints = false
-        result.layer.borderColor = UIColor.black.cgColor
-        result.layer.borderWidth = 1
         result.isEnabled = false
         return result
     }()
@@ -52,7 +53,7 @@ class LoginViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        view.backgroundColor = .white
+        view.backgroundColor = .systemBackground
         
         uidTextField.delegate = self
         uidTextField.addTarget(self, action: #selector(textFieldDidChange), for: .editingChanged)
@@ -71,6 +72,11 @@ class LoginViewController: UIViewController {
         super.viewDidAppear(animated)
         
         uidTextField.becomeFirstResponder()
+    }
+    
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        uidTextField.layer.borderColor = UIColor.separator.cgColor
     }
     
     private func setupViewHierarchy() {

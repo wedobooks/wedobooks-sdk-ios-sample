@@ -26,35 +26,20 @@ class OpenBookViewController: UIViewController {
     }()
     
     private let openAudioBookButton: UIButton = {
-        let result = UIButton(type: .system)
-        result.setTitle("Audio book", for: .normal)
-        result.setTitleColor(.black, for: .normal)
-        result.setTitleColor(.gray, for: .disabled)
+        let result = UIButton(configuration: .standardConfiguration(for: "Audio book"))
         result.translatesAutoresizingMaskIntoConstraints = false
-        result.layer.borderColor = UIColor.black.cgColor
-        result.layer.borderWidth = 1
         return result
     }()
     
     private let openEBookButton: UIButton = {
-        let result = UIButton(type: .system)
-        result.setTitle("Ebook", for: .normal)
-        result.setTitleColor(.black, for: .normal)
-        result.setTitleColor(.gray, for: .disabled)
+        let result = UIButton(configuration: .standardConfiguration(for: "Ebook"))
         result.translatesAutoresizingMaskIntoConstraints = false
-        result.layer.borderColor = UIColor.black.cgColor
-        result.layer.borderWidth = 1
         return result
     }()
     
     private let logoutButton: UIButton = {
-        let result = UIButton(type: .system)
-        result.setTitle("Logout", for: .normal)
-        result.setTitleColor(.black, for: .normal)
-        result.setTitleColor(.gray, for: .disabled)
+        let result = UIButton(configuration: .standardConfiguration(for: "Logout"))
         result.translatesAutoresizingMaskIntoConstraints = false
-        result.layer.borderColor = UIColor.black.cgColor
-        result.layer.borderWidth = 1
         return result
     }()
     
@@ -64,7 +49,7 @@ class OpenBookViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        view.backgroundColor = .white
+        view.backgroundColor = .systemBackground
         
         openAudioBookButton.addTarget(self, action: #selector(audioBookButtonTapped), for: .touchUpInside)
         openEBookButton.addTarget(self, action: #selector(ebookButtonTapped), for: .touchUpInside)
