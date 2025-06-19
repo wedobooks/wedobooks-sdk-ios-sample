@@ -17,28 +17,13 @@ class MainViewController: BaseViewController {
     
     private var loginViewController: LoginViewController?
     private var openBookViewController: OpenBookViewController?
-    
-//    private let lightTheme = Theme(
-//        primaryColor: .darkText,
-//        secondaryColor: .placeholderText,
-//        tertiaryColor: .cyan,
-//        backgroundColor: .white,
-//        useCornerRadius: true
-//    )
-//    private let darkTheme = Theme(
-//        primaryColor: .white,
-//        secondaryColor: .placeholderText,
-//        tertiaryColor: .orange,
-//        backgroundColor: .black,
-//        useCornerRadius: true
-//    )
 
     override func viewDidLoad() {
         super.viewDidLoad()
         
         setupWDBFacade()
         
-        if wdb?.user.currentUserId() != nil {
+        if wdb?.userOperations.currentUserId() != nil {
             updateOpenBookViewControllerVisibility(true)
         } else {
             updateLoginViewControllerVisibility(true)
@@ -46,15 +31,15 @@ class MainViewController: BaseViewController {
     }
 
     private func setupWDBFacade() {
-        guard let colibrioKey = Bundle.main.infoDictionary?["COLIBRIO_API_KEY"] as? String,
-           let colibrioSecret = Bundle.main.infoDictionary?["COLIBRIO_API_SECRET"] as? String else {
+        guard let readerKey = Bundle.main.infoDictionary?["READER_KEY"] as? String,
+           let readerSecret = Bundle.main.infoDictionary?["READER_SECRET"] as? String else {
             return
         }
         
         wdb = WeDoBooksFacade.shared
         try! wdb?.setup(
-            colibrioKey: colibrioKey,
-            colibrioSecret: colibrioSecret
+            readerKey: readerKey,
+            readerSecret: readerSecret
         )
         wdb?.styling.readerLogoHTML = logoHTML
         wdb?.styling.readerLogoImageName = "ReaderLogo"

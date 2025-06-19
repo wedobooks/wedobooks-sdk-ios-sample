@@ -136,7 +136,7 @@ class LoginViewController: UIViewController {
                 let customToken = json?["token"] as? String
                 print("Received token: \(customToken ?? "<nil>")")
                 if let customToken {
-                    let signInResult = await wdb?.user.signUserIn(token: customToken)
+                    let signInResult = await wdb?.userOperations.signUserIn(token: customToken)
                     switch signInResult {
                     case .none:
                         print("None")
