@@ -105,7 +105,7 @@ class OpenBookViewController: UIViewController {
     }
     
     @objc private func ebookButtonTapped(_ button: UIButton) {
-        openBook(isbn: "9780269038266")
+        openBook(isbn: "9780994135094")
     }
     
     @objc private func logoutButtonTapped(_ button: UIButton) {

@@ -18,20 +18,20 @@ class MainViewController: BaseViewController {
     private var loginViewController: LoginViewController?
     private var openBookViewController: OpenBookViewController?
     
-    private let lightTheme = Theme(
-        primaryColor: .darkText,
-        secondaryColor: .placeholderText,
-        tertiaryColor: .cyan,
-        backgroundColor: .white,
-        useCornerRadius: true
-    )
-    private let darkTheme = Theme(
-        primaryColor: .white,
-        secondaryColor: .placeholderText,
-        tertiaryColor: .orange,
-        backgroundColor: .black,
-        useCornerRadius: true
-    )
+//    private let lightTheme = Theme(
+//        primaryColor: .darkText,
+//        secondaryColor: .placeholderText,
+//        tertiaryColor: .cyan,
+//        backgroundColor: .white,
+//        useCornerRadius: true
+//    )
+//    private let darkTheme = Theme(
+//        primaryColor: .white,
+//        secondaryColor: .placeholderText,
+//        tertiaryColor: .orange,
+//        backgroundColor: .black,
+//        useCornerRadius: true
+//    )
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -58,8 +58,8 @@ class MainViewController: BaseViewController {
         )
         wdb?.styling.readerLogoHTML = logoHTML
         wdb?.styling.readerLogoImageName = "ReaderLogo"
-        wdb?.styling.lightTheme = lightTheme
-        wdb?.styling.darkTheme = darkTheme
+//        wdb?.styling.lightTheme = lightTheme
+//        wdb?.styling.darkTheme = darkTheme
         wdb?.localization.setLanguage(.english)
     }
     
