@@ -49,7 +49,7 @@ Working with the SDK follows this outline:
 
 - The WeDoBooksFacade singleton is the gateway to all the SDK functionality and can be accessed like this `WeDoBooksFacade.shared` 
 - Before doing anything else with the SDK you must call the `setup` method on the WeDoBooksFacade singleton instance. This should only be called once and will throw an error if it's called more than once.
-- All other functionality in the SDK is grouped in namespaces which can be accessed through properties on the WeDoBooksFacade instance. At the time of writing these namespaces exist: `bookOperations`, `diskOperations`, `configuration`, `events`, `localization`, `styling` and `userOperations`.  
+- All other functionality in the SDK is grouped in namespaces which can be accessed through properties on the WeDoBooksFacade instance. At the time of writing these namespaces exist: `bookOperations`, `storageOperations`, `configuration`, `events`, `localization`, `styling` and `userOperations`.  
 - After setup you can configure the SDK through these namespace properties if you for example want to use different styling that the default themes, change language, override some localizations, etc. 
 - In order to do any book operations a user needs to be signed in. This can be checked using the `currentUserId()` method on the `userOperations` namespace property.
 - If no user is signed in the sample app displays a login screen that asks for a user id. If there's a user id provided through the Secrets.xcconfig file as described above, then that user id is prefilled in the text field as a shortcut.
