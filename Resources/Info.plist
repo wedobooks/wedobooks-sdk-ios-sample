@@ -6,6 +6,8 @@
 	<string>$(READER_KEY)</string>
 	<key>READER_SECRET</key>
 	<string>$(READER_SECRET)</string>
+	<key>USER_ID</key>
+	<string>$(USER_ID)</string>
 	<key>FirebaseAutomaticScreenReportingEnabled</key>
 	<false/>
 	<key>UIApplicationSceneManifest</key>

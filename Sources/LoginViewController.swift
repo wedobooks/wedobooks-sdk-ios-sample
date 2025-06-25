@@ -60,10 +60,10 @@ class LoginViewController: UIViewController {
         
         loginButton.addTarget(self, action: #selector(loginButtonTapped), for: .touchUpInside)
         
-#if targetEnvironment(simulator)
-        uidTextField.text = "ibT544hbWpercMXzw0moUKC64yg1"
-        loginButton.isEnabled = true
-#endif
+        if let userId = Bundle.main.infoDictionary?["USER_ID"] as? String {
+            uidTextField.text = userId
+            loginButton.isEnabled = true
+        }
         
         setupViewHierarchy()
     }
@@ -117,39 +117,46 @@ class LoginViewController: UIViewController {
         SpinnerHUD.show(in: view)
         
         Task {
-            let url = "https://europe-west3-wedobooks-sdk.cloudfunctions.net/Sdk-Demo-get_auth_token"
-            let uid = uidTextField.text ?? ""
-            var request = URLRequest(url: URL(string: url)!)
-            
-            let body = try! JSONSerialization.data(withJSONObject: ["uid": uid], options: [])
-            
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.setValue("\(body.count)", forHTTPHeaderField: "Content-Length")
-            request.httpBody = body
-            
-            do {
-                let config = URLSessionConfiguration.ephemeral
-                let session = URLSession(configuration: config)
-                let (data, _) = try await session.data(for: request)
-                let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: String]
-                let customToken = json?["token"] as? String
-                print("Received token: \(customToken ?? "<nil>")")
-                if let customToken {
-                    let signInResult = await wdb?.userOperations.signUserIn(token: customToken)
-                    switch signInResult {
-                    case .none:
-                        print("None")
-                    case .success:
-                        delegate?.didLogin()
-                        SpinnerHUD.hide()
-                    case .failure:
-                        print("Failure")
-                    }
-                }
-            } catch {
-                print("Request failed with error: \(error)")
+            guard let token = try? await obtainDemoUserTokenAndSignIn() else {
+                return
             }
+            
+            let signInResult = await wdb?.userOperations.signUserIn(token: token)
+            switch signInResult {
+            case .none:
+                print("None")
+            case .success:
+                delegate?.didLogin()
+                SpinnerHUD.hide()
+            case .failure:
+                print("Failure")
+            }
+        }
+    }
+    
+    private func obtainDemoUserTokenAndSignIn() async throws -> String? {
+        let url = "https://europe-west3-wedobooks-sdk.cloudfunctions.net/Sdk-Demo-get_auth_token"
+        let uid = uidTextField.text ?? ""
+        var request = URLRequest(url: URL(string: url)!)
+        
+        let body = try! JSONSerialization.data(withJSONObject: ["uid": uid], options: [])
+        
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("\(body.count)", forHTTPHeaderField: "Content-Length")
+        request.httpBody = body
+        
+        do {
+            let config = URLSessionConfiguration.ephemeral
+            let session = URLSession(configuration: config)
+            let (data, _) = try await session.data(for: request)
+            let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: String]
+            let customToken = json?["token"] as? String
+            print("Received token: \(customToken ?? "<nil>")")
+            return customToken
+        } catch {
+            print("Request failed with error: \(error)")
+            throw error
         }
     }
 }
