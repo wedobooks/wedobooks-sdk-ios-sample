@@ -41,7 +41,7 @@ We will deliver an Xcode doccarchive with the API reference upon request.
 
 ## Backend to backend integration
 
-In order to sign a user in to the WeDoBooks SDK you need a so-called custom token. In a real app this would have to be obtained through a backend to backend integration and passed to the app. For demo purposes this app utilizes a demo backend endpoint in order to function without having the backend to backend integration setup. See `LoginViewController.obtainDemoUserTokenAndSignIn()` for the call to the demo backend endpoint.
+In order to sign a user in to the WeDoBooks SDK you need a so-called custom token. In a real app this would have to be obtained through a backend to backend integration and passed to the app. For demo purposes this app utilizes a demo backend endpoint in order to function without having the backend to backend integration setup. See `LoginViewController.obtainDemoUserTokenAndSignIn()` for the call to the demo backend endpoint. If you're using your own dedicated instance of the SDK backend, then the URL needs to change. Talk to us to get the proper endpoint to call here.
 
 ## Overview of the app
 
@@ -54,3 +54,7 @@ Working with the SDK follows this outline:
 - In order to do any book operations a user needs to be signed in. This can be checked using the `currentUserId()` method on the `userOperations` namespace property.
 - If no user is signed in the sample app displays a login screen that asks for a user id. If there's a user id provided through the Secrets.xcconfig file as described above, then that user id is prefilled in the text field as a shortcut.
 - After having signed in then you can checkout and open books through the `bookOperations` namespace property.
+
+## Interface orientations
+
+The reader and player view controllers support all orientations on `.pad` user interface idiom and portrait orientation otherwise.

@@ -127,7 +127,7 @@ class OpenBookViewController: UIViewController {
     @objc private func logoutButtonTapped(_ button: UIButton) {
         print("Logout tapped")
         
-        wdb?.userOperations.signUserOut()
+        wdb?.userOperations.signOut()
         delegate?.didLogout()
     }
     

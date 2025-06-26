@@ -121,7 +121,7 @@ class LoginViewController: UIViewController {
                 return
             }
             
-            let signInResult = await wdb?.userOperations.signUserIn(token: token)
+            let signInResult = await wdb?.userOperations.signIn(with: token)
             switch signInResult {
             case .none:
                 print("None")
