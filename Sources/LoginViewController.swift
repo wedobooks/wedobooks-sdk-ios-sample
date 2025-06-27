@@ -135,7 +135,8 @@ class LoginViewController: UIViewController {
     }
     
     private func obtainDemoUserTokenAndSignIn() async throws -> String? {
-        guard let url = Bundle.main.infoDictionary?["CUSTOM_TOKEN_URL"] as? String else {
+        guard let encodedURL = Bundle.main.infoDictionary?["CUSTOM_TOKEN_URL"] as? String,
+              let url = encodedURL.removingPercentEncoding else {
             return nil
         }
         let uid = uidTextField.text ?? ""
