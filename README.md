@@ -8,6 +8,8 @@ It primarily demonstrates how to sign in with a user, check out a book, and open
 
 The `WeDoBooks SDK` includes Firebase SDK `v11.13.0`, which is statically bundled within the SDK. If your host app also uses Firebase, please notify us, as this may lead to runtime conflicts.
 
+---
+
 ## Setup
 
 To get started, you’ll need the following (provided by WeDoBooks upon request):
@@ -21,6 +23,8 @@ To get started, you’ll need the following (provided by WeDoBooks upon request)
 - The Firebase `GoogleService-Info.plist` file for the backend you intend to use.  
   The app’s bundle ID must match the one specified in this file, which must be registered in the backend.  
   Provide us with your desired bundle ID, and we’ll generate the file for you to include in your project.
+
+---
 
 ### Secrets.xcconfig
 
@@ -37,23 +41,31 @@ USER_ID = <some-uid>
 These values are injected into the `Info.plist`, which can be accessed at runtime via the main bundle.  
 Create this file in the `Resources` folder and the rest should work automatically.
 
-### Background modes
+---
+
+### Background Modes
 
 To allow audio playback in the background, apps integrating the `WeDoBooks SDK` must enable the appropriate background modes.
 
-## API reference
+---
+
+## API Reference
 
 An Xcode `.doccarchive` containing the API reference will be provided upon request.
 
-## Backend to backend integration
+---
+
+## Backend-to-Backend Integration
 
 In order to sign a user in to the WeDoBooks SDK you need a so-called custom token.
 In a production environment, this token should be obtained through backend-to-backend integration and passed to the app.
 
 For demo purposes, this app uses a demo backend endpoint, allowing it to function without backend integration.  
-Refer to `LoginViewController.obtainDemoUserTokenAndSignIn()` for the relevant call.  
+Refer to `LoginViewController.obtainDemoUserTokenAndSignIn()` for the relevant call.
 
-## Overview of the app
+---
+
+## Overview of the App
 
 Working with the SDK generally follows this pattern:
 
@@ -82,6 +94,10 @@ Working with the SDK generally follows this pattern:
 
 - Once signed in, books can be checked out and opened via the `bookOperations` namespace.
 
-## Interface orientations
+---
+
+## Interface Orientations
 
 The reader and player view controllers support all orientations on `.pad` user interface idiom and portrait orientation otherwise.
+
+---
