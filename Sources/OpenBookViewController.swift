@@ -117,16 +117,16 @@ class OpenBookViewController: UIViewController {
     }
     
     @objc private func audioBookButtonTapped(_ button: UIButton) {
+        // Ask us for isbn to use
         openBook(isbn: "9780297395461")
     }
     
     @objc private func ebookButtonTapped(_ button: UIButton) {
+        // Ask us for isbn to use
         openBook(isbn: "9780994135094")
     }
     
     @objc private func logoutButtonTapped(_ button: UIButton) {
-        print("Logout tapped")
-        
         wdb?.userOperations.signOut()
         delegate?.didLogout()
     }
