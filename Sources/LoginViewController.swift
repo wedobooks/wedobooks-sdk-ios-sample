@@ -135,7 +135,9 @@ class LoginViewController: UIViewController {
     }
     
     private func obtainDemoUserTokenAndSignIn() async throws -> String? {
-        let url = "https://europe-west3-wedobooks-sdk.cloudfunctions.net/Sdk-Demo-get_auth_token"
+        guard let url = Bundle.main.infoDictionary?["CUSTOM_TOKEN_URL"] as? String else {
+            return nil
+        }
         let uid = uidTextField.text ?? ""
         var request = URLRequest(url: URL(string: url)!)
         

@@ -20,6 +20,8 @@ To get started, you’ll need the following (provided by WeDoBooks upon request)
   (can be provided at runtime via `Secrets.xcconfig` — see below).
 - Reader credentials (key and secret)  
   (also provided via `Secrets.xcconfig`).
+- Custom token URL which is used to get a sign in token for the demo user until you own backend is able to provide it for you.
+  (also provided via `Secrets.xcconfig`).
 - The Firebase `GoogleService-Info.plist` file for the backend you intend to use.  
   The app’s bundle ID must match the one specified in this file, which must be registered in the backend.  
   Provide us with your desired bundle ID, and we’ll generate the file for you to include in your project.
@@ -36,6 +38,7 @@ The current build settings expect a file called `Secrets.xcconfig` with the foll
 READER_KEY = <some-key>
 READER_SECRET = <some-secret>
 USER_ID = <some-uid>
+CUSTOM_TOKEN_URL = <some-url>
 ```
 
 These values are injected into the `Info.plist`, which can be accessed at runtime via the main bundle.  
