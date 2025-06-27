@@ -1,27 +1,32 @@
 # WeDoBooks SDK Sample App
 
-Public sample app as inspiration for integrators. 
+This is a public sample app intended to serve as inspiration for integrators.
 
-It mainly demonstrates how to sign in with user, checkout a book and open it with our full screen reader or player components. It's also possible to play around with theming, localization and a few other configurations of the UI.
+It primarily demonstrates how to sign in with a user, check out a book, and open it using our full-screen reader or player components. You can also explore theming, localization, and several other UI configurations.
 
-This app requires a WeDoBooks SDK backend and other credentials to function properly. Get in touch to obtain access.
+> **Note:** This app requires access to the WeDoBooks SDK backend and additional credentials to function correctly. Contact us to request access.
 
-The WeDoBooksSDK uses the Firebase SDK v11.13.0 which is statically bundled inside the SDK. If you use Firebase in the host app please let us know as this could potentially present some challenges at runtime.
+The `WeDoBooks SDK` includes Firebase SDK `v11.13.0`, which is statically bundled within the SDK. If your host app also uses Firebase, please notify us, as this may lead to runtime conflicts.
 
 ## Setup
 
-In order to get up and running you need the following (which will be delivered by WeDoBooks when requested):
+To get started, you’ll need the following (provided by WeDoBooks upon request):
 
-- Access to the server that's delivering the SDK through SPM (can be used in a .netrc file to avoid entering in Xcode on every download - see below).
-- A demo user id of a user in our demo backend (can be delivered to the runtime through Secrets.xcconfig - see below).
-- Credentials (key and secret) to the reader component (can be delivered to the runtime through Secrets.xcconfig - see below).
-- Firebase info plist file of the backend you want to use. The bundle id of the app must match the bundle id in this file which must exists as a defined app in the backend. Let us know the desired bundle id and we will produce this file for you and it needs to be added to the project.
+- Access to the server hosting the SDK via SPM  
+  (you can use a `.netrc` file to avoid repeated login prompts in Xcode — see below).
+- A demo user ID for a user in our demo backend  
+  (can be provided at runtime via `Secrets.xcconfig` — see below).
+- Reader credentials (key and secret)  
+  (also provided via `Secrets.xcconfig`).
+- The Firebase `GoogleService-Info.plist` file for the backend you intend to use.  
+  The app’s bundle ID must match the one specified in this file, which must be registered in the backend.  
+  Provide us with your desired bundle ID, and we’ll generate the file for you to include in your project.
 
 ### Secrets.xcconfig
 
-This the recommended way to inject the user id, reader key and secret mentioned above, but of course, feel free to do it in another way.
+This is the recommended way to inject the user ID, reader key, and secret mentioned above.  
 
-The current build settings look for a file called Secrets.xcconfig and expects these values:
+The current build settings expect a file called `Secrets.xcconfig` with the following values:
 
 ```
 READER_KEY = <some-key>
@@ -29,31 +34,53 @@ READER_SECRET = <some-secret>
 USER_ID = <some-uid>
 ```
 
-These values are then loaded into the Info.plist file which can be accessed at runtime through the main bundle. Create this file with the values in the Resources folder and the rest should take care of itself.
+These values are injected into the `Info.plist`, which can be accessed at runtime via the main bundle.  
+Create this file in the `Resources` folder and the rest should work automatically.
 
 ### Background modes
 
-In order to be allowed to play audio in the background any app the integrates with the WeDoBooks SDK
+To allow audio playback in the background, apps integrating the `WeDoBooks SDK` must enable the appropriate background modes.
 
 ## API reference
 
-We will deliver an Xcode doccarchive with the API reference upon request.
+An Xcode `.doccarchive` containing the API reference will be provided upon request.
 
 ## Backend to backend integration
 
-In order to sign a user in to the WeDoBooks SDK you need a so-called custom token. In a real app this would have to be obtained through a backend to backend integration and passed to the app. For demo purposes this app utilizes a demo backend endpoint in order to function without having the backend to backend integration setup. See `LoginViewController.obtainDemoUserTokenAndSignIn()` for the call to the demo backend endpoint. If you're using your own dedicated instance of the SDK backend, then the URL needs to change. Talk to us to get the proper endpoint to call here.
+In order to sign a user in to the WeDoBooks SDK you need a so-called custom token.
+In a production environment, this token should be obtained through backend-to-backend integration and passed to the app.
+
+For demo purposes, this app uses a demo backend endpoint, allowing it to function without backend integration.  
+Refer to `LoginViewController.obtainDemoUserTokenAndSignIn()` for the relevant call.  
 
 ## Overview of the app
 
-Working with the SDK follows this outline:
+Working with the SDK generally follows this pattern:
 
-- The WeDoBooksFacade singleton is the gateway to all the SDK functionality and can be accessed like this `WeDoBooksFacade.shared` 
-- Before doing anything else with the SDK you must call the `setup` method on the WeDoBooksFacade singleton instance. This should only be called once and will throw an error if it's called more than once.
-- All other functionality in the SDK is grouped in namespaces which can be accessed through properties on the WeDoBooksFacade instance. At the time of writing these namespaces exist: `bookOperations`, `storageOperations`, `configuration`, `events`, `localization`, `styling` and `userOperations`.  
-- After setup you can configure the SDK through these namespace properties if you for example want to use different styling that the default themes, change language, override some localizations, etc. 
-- In order to do any book operations a user needs to be signed in. This can be checked using the `currentUserId()` method on the `userOperations` namespace property.
-- If no user is signed in the sample app displays a login screen that asks for a user id. If there's a user id provided through the Secrets.xcconfig file as described above, then that user id is prefilled in the text field as a shortcut.
-- After having signed in then you can checkout and open books through the `bookOperations` namespace property.
+- The `WeDoBooksFacade` singleton is the entry point to all SDK functionality:  
+  ```swift
+  WeDoBooksFacade.shared
+  ```
+
+- Before using any SDK features, you must call the `setup` method on the singleton instance.  
+  This should only be done once; calling it multiple times will result in an error.
+
+- SDK functionality is organized into namespaces, accessible via properties on the `WeDoBooksFacade` instance.  
+  Current namespaces include:  
+  `bookOperations`, `storageOperations`, `configuration`, `events`, `localization`, `styling`, and `userOperations`.
+
+- After setup, you can configure the SDK using these namespace properties — for example, to:
+  - Apply custom styling instead of default themes
+  - Change the language
+  - Override localization strings
+
+- A user must be signed in to perform book operations.  
+  Use `userOperations.currentUserId()` to check whether a user is signed in.
+
+- If no user is signed in, the sample app displays a login screen requesting a user ID.  
+  If a user ID is provided via `Secrets.xcconfig`, it will be pre-filled in the input field.
+
+- Once signed in, books can be checked out and opened via the `bookOperations` namespace.
 
 ## Interface orientations
 
