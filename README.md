@@ -54,7 +54,7 @@ To allow audio playback in the background, apps integrating the `WeDoBooks SDK` 
 
 ## API Reference
 
-An Xcode `.doccarchive` containing the API reference will be provided upon request.
+Can be found in the zip file `WeDoBooksSDK.doccarchive.zip` in the repo root, which contains the matching doccarchive reference for the SDK APIs.
 
 ---
 
