@@ -47,7 +47,6 @@ class LoginViewController: UIViewController {
         return result
     }()
     
-    var wdb: WeDoBooksFacade?
     weak var delegate: LoginViewControllerDelegate?
     
     override func viewDidLoad() {
@@ -121,10 +120,8 @@ class LoginViewController: UIViewController {
                 return
             }
             
-            let signInResult = await wdb?.userOperations.signIn(with: token)
+            let signInResult = await WeDoBooksFacade.shared.userOperations.signIn(with: token)
             switch signInResult {
-            case .none:
-                print("None")
             case .success:
                 delegate?.didLogin()
                 SpinnerHUD.hide()
