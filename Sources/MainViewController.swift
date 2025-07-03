@@ -43,7 +43,6 @@ class MainViewController: BaseViewController {
     private func updateLoginViewControllerVisibility(_ show: Bool) {
         if show {
             let vc = LoginViewController(nibName: nil, bundle: nil)
-            vc.wdb = wdb
             vc.delegate = self
             vc.willMove(toParent: self)
             addChild(vc)
@@ -62,7 +61,6 @@ class MainViewController: BaseViewController {
     private func updateOpenBookViewControllerVisibility(_ show: Bool) {
         if show {
             let vc = OpenBookViewController(nibName: nil, bundle: nil)
-            vc.wdb = wdb
             vc.delegate = self
             vc.willMove(toParent: self)
             addChild(vc)
