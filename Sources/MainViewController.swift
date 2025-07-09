@@ -5,88 +5,84 @@
 //  Created by Bo Gosmer on 21/03/2025.
 //
 
+import Combine
 import UIKit
 import WeDoBooksSDK
 
-class MainViewController: BaseViewController {
-    private var wdb: WeDoBooksFacade?
+class MainViewController: UIViewController {
+    private var navController = OrientationNavController()
+    private var loginViewController = LoginViewController()
+    private var openBookViewController = OpenBookViewController()
     
-    private var loginViewController: LoginViewController?
-    private var openBookViewController: OpenBookViewController?
+    // MARK: Override vars
+    
+    override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
+        [.portrait]
+    }
+    
+    // MARK: View lifecycle
 
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        view.backgroundColor = .systemBackground
+                
         setupWDBFacade()
         
-        if wdb?.userOperations.currentUserId != nil {
-            updateOpenBookViewControllerVisibility(true)
+        navController.willMove(toParent: self)
+        addChild(navController)
+        view.addSubview(navController.view)
+        navController.didMove(toParent: self)
+        
+        loginViewController.delegate = self
+        openBookViewController.delegate = self
+        
+        if WeDoBooksFacade.shared.userOperations.currentUserId != nil {
+            navController.viewControllers = [openBookViewController]
         } else {
-            updateLoginViewControllerVisibility(true)
+            navController.viewControllers = [loginViewController]
         }
     }
-
+    
+    // MARK: Private functions
+    
     private func setupWDBFacade() {
         guard let readerKey = Bundle.main.infoDictionary?["READER_KEY"] as? String,
            let readerSecret = Bundle.main.infoDictionary?["READER_SECRET"] as? String else {
-            return
+            fatalError("Missing secrets for the reader")
         }
         
-        wdb = WeDoBooksFacade.shared
-        try! wdb?.setup(
+        try! WeDoBooksFacade.shared.setup(
             readerKey: readerKey,
             readerSecret: readerSecret
         )
-        wdb?.localization.setLanguage(.english)
-    }
-    
-    private func updateLoginViewControllerVisibility(_ show: Bool) {
-        if show {
-            let vc = LoginViewController(nibName: nil, bundle: nil)
-            vc.delegate = self
-            vc.willMove(toParent: self)
-            addChild(vc)
-            view.addSubview(vc.view)
-            vc.didMove(toParent: self)
-            loginViewController = vc
-        } else {
-            loginViewController?.willMove(toParent: nil)
-            loginViewController?.view.removeFromSuperview()
-            loginViewController?.removeFromParent()
-            loginViewController?.didMove(toParent: nil)
-            loginViewController = nil
-        }
-    }
-    
-    private func updateOpenBookViewControllerVisibility(_ show: Bool) {
-        if show {
-            let vc = OpenBookViewController(nibName: nil, bundle: nil)
-            vc.delegate = self
-            vc.willMove(toParent: self)
-            addChild(vc)
-            view.addSubview(vc.view)
-            vc.didMove(toParent: self)
-            openBookViewController = vc
-        } else {
-            openBookViewController?.willMove(toParent: nil)
-            openBookViewController?.view.removeFromSuperview()
-            openBookViewController?.removeFromParent()
-            openBookViewController?.didMove(toParent: nil)
-            openBookViewController = nil
-        }
+        WeDoBooksFacade.shared.localization.setLanguage(.english)
+        let localizations: [WeDoBooksFacade.Localization.LocalizationKeys : [WeDoBooksFacade.Localization.Language : String]] = [
+            .buttonSave : [.english : "Custom save"],
+            .playerPlaybackRateReset : [.english : "Custom reset"],
+            .playerPlaybackRateSpeed : [.english : "Custom speed"],
+            .playerMoreMenuAboutBookLabel : [.english : "Custom about book"],
+        ]
+        WeDoBooksFacade.shared.localization.setCustomLocalizations(localizations)
+        
+        WeDoBooksFacade.shared.configuration.showFinishEbookButton = false
+        WeDoBooksFacade.shared.configuration.showFinishAudiobookButton = false
+        WeDoBooksFacade.shared.configuration.showAboutAudioBookButton = false
+        WeDoBooksFacade.shared.configuration.allowEbookDownloadUsingMobileData = true
+        
+        WeDoBooksFacade.shared.images.icons.set(.close, to: "sf:xmark.app")
+        WeDoBooksFacade.shared.images.icons.set(.down, to: "down-alt")
     }
 }
 
 extension MainViewController: LoginViewControllerDelegate {
-    func didLogin() {
-        updateLoginViewControllerVisibility(false)
-        updateOpenBookViewControllerVisibility(true)
+    func userDidLogin() {
+        navController.setViewControllers([openBookViewController], animated: true)
     }
 }
 
 extension MainViewController: OpenBookViewControllerDelegate {
-    func didLogout() {
-        updateLoginViewControllerVisibility(true)
-        updateOpenBookViewControllerVisibility(false)
+    func userDidLogout() {
+        navController.setViewControllers([loginViewController], animated: true)
     }
 }

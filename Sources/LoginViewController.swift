@@ -5,113 +5,64 @@
 //  Created by Bo Gosmer on 06/06/2025.
 //
 
+import Combine
 import UIKit
 import WeDoBooksSDK
 
 protocol LoginViewControllerDelegate: AnyObject {
-    func didLogin()
+    func userDidLogin()
 }
 
-class LoginViewController: UIViewController {
-    private let titleLabel: UILabel = {
-        let result = UILabel()
-        result.textAlignment = .center
-        result.font = .systemFont(ofSize: 24, weight: .bold)
-        result.text = "Login"
-        result.textColor = .label
-        result.translatesAutoresizingMaskIntoConstraints = false
-        return result
-    }()
+final class LoginViewController: UIViewController {
+    private var cancellables: Set<AnyCancellable> = []
 
-    private let uidTextField: UITextField = {
-        let result = UITextField()
+    private let signInButton: UIButton = {
+        let result = UIButton(configuration: .standardConfiguration(for: "Sign in"))
         result.translatesAutoresizingMaskIntoConstraints = false
-        result.borderStyle = .none
-        result.backgroundColor = .secondarySystemBackground
-        result.textColor = .label
-        result.tintColor = .systemBlue  // cursor/caret color
-        result.layer.borderWidth = 1
-        result.layer.borderColor = UIColor.separator.cgColor
-        result.layer.masksToBounds = true
-        result.placeholder = "User ID"
-        result.clearButtonMode = .always
-        result.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 8, height: 0))
-        result.leftViewMode = .always
         return result
     }()
     
-    private let loginButton: UIButton = {
-        let result = UIButton(configuration: .standardConfiguration(for: "Login"))
-        result.translatesAutoresizingMaskIntoConstraints = false
-        result.isEnabled = false
-        return result
-    }()
+    private var token: String?
     
     weak var delegate: LoginViewControllerDelegate?
+    
+    // MARK: Override vars
+    
+    override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
+        [.portrait]
+    }
+    
+    // MARK: View controller life cycle
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
         view.backgroundColor = .systemBackground
         
-        uidTextField.delegate = self
-        uidTextField.addTarget(self, action: #selector(textFieldDidChange), for: .editingChanged)
-        
-        loginButton.addTarget(self, action: #selector(loginButtonTapped), for: .touchUpInside)
-        
-        if let userId = Bundle.main.infoDictionary?["USER_ID"] as? String {
-            uidTextField.text = userId
-            loginButton.isEnabled = true
-        }
-        
         setupViewHierarchy()
+        setupControlActions()
     }
     
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        
-        uidTextField.becomeFirstResponder()
-    }
-    
-    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
-        super.traitCollectionDidChange(previousTraitCollection)
-        uidTextField.layer.borderColor = UIColor.separator.cgColor
-    }
+    // MARK: Private functions
     
     private func setupViewHierarchy() {
-        view.addSubview(titleLabel)
-        view.addSubview(uidTextField)
-        view.addSubview(loginButton)
+        view.addSubview(signInButton)
         
         NSLayoutConstraint.activate([
-            titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 80),
-            titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-        ])
-        
-        NSLayoutConstraint.activate([
-            uidTextField.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 40),
-            uidTextField.widthAnchor.constraint(equalToConstant: 300),
-            uidTextField.heightAnchor.constraint(equalToConstant: 44),
-            uidTextField.centerXAnchor.constraint(equalTo: view.centerXAnchor)
-        ])
-        
-        NSLayoutConstraint.activate([
-            loginButton.topAnchor.constraint(equalTo: uidTextField.bottomAnchor, constant: 40),
-            loginButton.widthAnchor.constraint(equalTo: uidTextField.widthAnchor),
-            loginButton.heightAnchor.constraint(equalTo: uidTextField.heightAnchor),
-            loginButton.centerXAnchor.constraint(equalTo: view.centerXAnchor)
+            signInButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 40),
+            signInButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            signInButton.widthAnchor.constraint(equalToConstant: 200),
+            signInButton.heightAnchor.constraint(equalToConstant: 50),
         ])
     }
     
-    @objc private func textFieldDidChange(_ textField: UITextField) {
-        loginButton.isEnabled = !(textField.text?.isEmpty ?? true)
+    private func setupControlActions() {
+        signInButton.addTarget(self, action: #selector(signInButtonTapped), for: .touchUpInside)
     }
     
-    @objc private func loginButtonTapped(_ button: UIButton) {
-        uidTextField.resignFirstResponder()
-        
-        loginButton.isEnabled = false
-        uidTextField.isEnabled = false
+    @objc
+    private func signInButtonTapped(_ button: UIButton) {
+        signInButton.isEnabled = false
         
         SpinnerHUD.show(in: view)
         
@@ -123,23 +74,24 @@ class LoginViewController: UIViewController {
             let signInResult = await WeDoBooksFacade.shared.userOperations.signIn(with: token)
             switch signInResult {
             case .success:
-                delegate?.didLogin()
+                delegate?.userDidLogin()
                 SpinnerHUD.hide()
-            case .failure:
-                print("Failure")
+            case .failure(let error):
+                print("Failure: \(error)")
             }
         }
     }
     
     private func obtainDemoUserTokenAndSignIn() async throws -> String? {
         guard let encodedURL = Bundle.main.infoDictionary?["CUSTOM_TOKEN_URL"] as? String,
-              let url = encodedURL.removingPercentEncoding else {
+              let url = encodedURL.removingPercentEncoding,
+              let userId = Bundle.main.infoDictionary?["USER_ID"] as? String else {
             return nil
         }
-        let uid = uidTextField.text ?? ""
+        
         var request = URLRequest(url: URL(string: url)!)
         
-        let body = try! JSONSerialization.data(withJSONObject: ["uid": uid], options: [])
+        let body = try! JSONSerialization.data(withJSONObject: ["uid": userId], options: [])
         
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -158,19 +110,5 @@ class LoginViewController: UIViewController {
             print("Request failed with error: \(error)")
             throw error
         }
-    }
-}
-
-extension LoginViewController: UITextFieldDelegate {
-    func textField(
-        _ textField: UITextField,
-        shouldChangeCharactersIn range: NSRange,
-        replacementString string: String
-    ) -> Bool {
-        if let currentText = textField.text, let textRange = Range(range, in: currentText) {
-            let updatedText = currentText.replacingCharacters(in: textRange, with: string)
-            loginButton.isEnabled = !updatedText.isEmpty
-        }
-        return true
     }
 }
