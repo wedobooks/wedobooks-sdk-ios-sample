@@ -14,47 +14,30 @@ protocol OpenBookViewControllerDelegate: AnyObject {
 }
 
 final class OpenBookViewController: UIViewController {
+    private let buttonWidth: CGFloat = 240
+    private let controleVerticalSpace: CGFloat = 30
+    
     private var cancellables: Set<AnyCancellable> = []
     private var cancellablesForUser: Set<AnyCancellable> = []
     
-    private let openAudioBookButton: UIButton = {
-        let result = UIButton(configuration: .standardConfiguration(for: "Open audiobook"))
-        result.translatesAutoresizingMaskIntoConstraints = false
-        return result
-    }()
+    private let openAudioBookButton = UIButton(title: "Open audiobook")
     
-    private let openEBookButton: UIButton = {
-        let result = UIButton(configuration: .standardConfiguration(for: "Open ebook"))
-        result.translatesAutoresizingMaskIntoConstraints = false
-        return result
-    }()
+    private let openEBookButton = UIButton(title: "Open ebook")
     
-    private let statsButton: UIButton = {
-        let result = UIButton(configuration: .standardConfiguration(for: "Stats"))
-        result.translatesAutoresizingMaskIntoConstraints = false
-        return result
-    }()
+    private let statsButton = UIButton(title: "Stats")
     
     private let themeSwitcher: UISegmentedControl = {
-        let result = UISegmentedControl(items: ["Default", "Custom"])
+        let result = UISegmentedControl(items: ["Default theme", "Custom theme"])
         result.translatesAutoresizingMaskIntoConstraints = false
         result.selectedSegmentIndex = 0
         return result
     }()
     
-    private let stopAudioButton: UIButton = {
-        let result = UIButton(configuration: .standardConfiguration(for: "Stop audio"))
-        result.translatesAutoresizingMaskIntoConstraints = false
-        result.isEnabled = true
-        return result
-    }()
+    private let stopAudioButton = UIButton(title: "Stop audio")
     
-    private let logoutButton: UIButton = {
-        let result = UIButton(configuration: .standardConfiguration(for: "Logout"))
-        result.translatesAutoresizingMaskIntoConstraints = false
-        result.isEnabled = true
-        return result
-    }()
+    private let downloadedBooksButton = UIButton(title: "Downloaded books")
+    
+    private let logoutButton = UIButton(title: "Logout")
     
     private let easyAccessView: EasyAccessView = {
         let result = EasyAccessView()
@@ -104,6 +87,7 @@ final class OpenBookViewController: UIViewController {
         view.addSubview(openEBookButton)
         view.addSubview(themeSwitcher)
         view.addSubview(stopAudioButton)
+        view.addSubview(downloadedBooksButton)
         view.addSubview(logoutButton)
         view.addSubview(easyAccessView)
         view.addSubview(statsButton)
@@ -111,42 +95,49 @@ final class OpenBookViewController: UIViewController {
         NSLayoutConstraint.activate([
             openAudioBookButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
             openAudioBookButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            openAudioBookButton.widthAnchor.constraint(equalToConstant: 200),
+            openAudioBookButton.widthAnchor.constraint(equalToConstant: buttonWidth),
             openAudioBookButton.heightAnchor.constraint(equalToConstant: 50),
         ])
         
         NSLayoutConstraint.activate([
-            openEBookButton.topAnchor.constraint(equalTo: openAudioBookButton.bottomAnchor, constant: 40),
+            openEBookButton.topAnchor.constraint(equalTo: openAudioBookButton.bottomAnchor, constant: controleVerticalSpace),
             openEBookButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            openEBookButton.widthAnchor.constraint(equalToConstant: 200),
+            openEBookButton.widthAnchor.constraint(equalToConstant: buttonWidth),
             openEBookButton.heightAnchor.constraint(equalToConstant: 50),
         ])
         
         NSLayoutConstraint.activate([
-            statsButton.topAnchor.constraint(equalTo: openEBookButton.bottomAnchor, constant: 40),
+            statsButton.topAnchor.constraint(equalTo: openEBookButton.bottomAnchor, constant: controleVerticalSpace),
             statsButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            statsButton.widthAnchor.constraint(equalToConstant: 200),
+            statsButton.widthAnchor.constraint(equalToConstant: buttonWidth),
             statsButton.heightAnchor.constraint(equalToConstant: 50),
         ])
         
         NSLayoutConstraint.activate([
-            themeSwitcher.topAnchor.constraint(equalTo: statsButton.bottomAnchor, constant: 40),
+            themeSwitcher.topAnchor.constraint(equalTo: statsButton.bottomAnchor, constant: controleVerticalSpace),
             themeSwitcher.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            themeSwitcher.widthAnchor.constraint(equalToConstant: 200),
+            themeSwitcher.widthAnchor.constraint(equalToConstant: buttonWidth),
             themeSwitcher.heightAnchor.constraint(equalToConstant: 50),
         ])
         
         NSLayoutConstraint.activate([
-            stopAudioButton.topAnchor.constraint(equalTo: themeSwitcher.bottomAnchor, constant: 40),
+            stopAudioButton.topAnchor.constraint(equalTo: themeSwitcher.bottomAnchor, constant: controleVerticalSpace),
             stopAudioButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            stopAudioButton.widthAnchor.constraint(equalToConstant: 200),
+            stopAudioButton.widthAnchor.constraint(equalToConstant: buttonWidth),
             stopAudioButton.heightAnchor.constraint(equalToConstant: 50),
         ])
         
         NSLayoutConstraint.activate([
-            logoutButton.topAnchor.constraint(equalTo: stopAudioButton.bottomAnchor, constant: 40),
+            downloadedBooksButton.topAnchor.constraint(equalTo: stopAudioButton.bottomAnchor, constant: controleVerticalSpace),
+            downloadedBooksButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            downloadedBooksButton.widthAnchor.constraint(equalToConstant: buttonWidth),
+            downloadedBooksButton.heightAnchor.constraint(equalToConstant: 50),
+        ])
+        
+        NSLayoutConstraint.activate([
+            logoutButton.topAnchor.constraint(equalTo: downloadedBooksButton.bottomAnchor, constant: controleVerticalSpace),
             logoutButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            logoutButton.widthAnchor.constraint(equalToConstant: 200),
+            logoutButton.widthAnchor.constraint(equalToConstant: buttonWidth),
             logoutButton.heightAnchor.constraint(equalToConstant: 50),
         ])
         
@@ -191,6 +182,7 @@ final class OpenBookViewController: UIViewController {
         stopAudioButton.addTarget(self, action: #selector(stopAudioButtonTapped), for: .touchUpInside)
         logoutButton.addTarget(self, action: #selector(logoutButtonTapped), for: .touchUpInside)
         statsButton.addTarget(self, action: #selector(statsButtonTapped), for: .touchUpInside)
+        downloadedBooksButton.addTarget(self, action: #selector(downloadedBooksButtonTapped), for: .touchUpInside)
     }
     
     private func observeEasyAccess() {
@@ -215,7 +207,6 @@ final class OpenBookViewController: UIViewController {
     private func openAudiobookButtonTapped() {
         openAudioBookButton.isEnabled = false
         Task {
-            // Ask us for isbn to use
             let checkoutResult = await WeDoBooksFacade.shared.bookOperations.checkoutBook(with: "9788702073416")
             switch checkoutResult {
             case .success(let checkout):
@@ -237,7 +228,6 @@ final class OpenBookViewController: UIViewController {
         openEBookButton.isEnabled = false
         
         Task { @MainActor in
-            // Ask us for isbn to use
             let checkoutResult = await WeDoBooksFacade.shared.bookOperations.checkoutBook(with: "9788702437782")
             switch checkoutResult {
             case .success(let checkout):
@@ -280,6 +270,12 @@ final class OpenBookViewController: UIViewController {
     @objc
     private func statsButtonTapped() {
         let vc = StatsViewController()
+        navigationController?.pushViewController(vc, animated: true)
+    }
+    
+    @objc
+    private func downloadedBooksButtonTapped() {
+        let vc = DownloadedBooksViewController()
         navigationController?.pushViewController(vc, animated: true)
     }
 }
