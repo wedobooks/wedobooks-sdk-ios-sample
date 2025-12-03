@@ -73,9 +73,10 @@ final class LoginViewController: UIViewController {
             
             let signInResult = await WeDoBooksFacade.shared.userOperations.signIn(with: token)
             switch signInResult {
-            case .success:
+            case .success(let user):
                 delegate?.userDidLogin()
                 SpinnerHUD.hide()
+                print("Sign in success: \(user)")
             case .failure(let error):
                 print("Failure: \(error)")
             }

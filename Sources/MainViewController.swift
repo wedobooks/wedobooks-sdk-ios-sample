@@ -6,6 +6,7 @@
 //
 
 import Combine
+import FirebaseProvider
 import UIKit
 import WeDoBooksSDK
 
@@ -54,7 +55,8 @@ class MainViewController: UIViewController {
         
         try! WeDoBooksFacade.shared.setup(
             readerKey: readerKey,
-            readerSecret: readerSecret
+            readerSecret: readerSecret,
+            firebaseAdapterFactory: FirebaseAdapterFactory()
         )
         WeDoBooksFacade.shared.localization.setLanguage(.english)
         let localizations: [WeDoBooksFacade.Localization.LocalizationKeys : [WeDoBooksFacade.Localization.Language : String]] = [
