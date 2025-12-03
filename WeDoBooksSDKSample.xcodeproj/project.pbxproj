@@ -392,8 +392,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/wedobooks/wedobooks-sdk-ios-spm";
 			requirement = {
-				branch = "firebase-injection";
-				kind = branch;
+				kind = exactVersion;
+				version = 1.0.4;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
