@@ -91,3 +91,4 @@ iOSInjectionProject/
 Secrets.xcconfig
 ThirdParty/**/*
 GoogleService-Info.plist
+GoogleService-Info-SDK.plist

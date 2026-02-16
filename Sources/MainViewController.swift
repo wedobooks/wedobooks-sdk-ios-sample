@@ -53,10 +53,19 @@ class MainViewController: UIViewController {
             fatalError("Missing secrets for the reader")
         }
         
+        let sdkGoogleInfoFileName = "GoogleService-Info-SDK.plist"
+        guard let sdkGoogleInfoFilePath = Bundle.main.path(
+            forResource: sdkGoogleInfoFileName,
+            ofType: nil
+        ) else {
+            fatalError("Path in bundle for SDK Google Info plist file not found")
+        }
+        
         try! WeDoBooksFacade.shared.setup(
             readerKey: readerKey,
             readerSecret: readerSecret,
-            firebaseAdapterFactory: FirebaseAdapterFactory()
+            firebaseAdapterFactory: FirebaseAdapterFactory(),
+            firebaseConfigFilePath: sdkGoogleInfoFilePath
         )
         WeDoBooksFacade.shared.localization.setLanguage(.english)
         let localizations: [WeDoBooksFacade.Localization.LocalizationKeys : [WeDoBooksFacade.Localization.Language : String]] = [
