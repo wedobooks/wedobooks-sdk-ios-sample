@@ -6,8 +6,6 @@ It primarily demonstrates how to sign in with a user, check out a book, and open
 
 > **Note:** This app requires access to the WeDoBooks SDK backend and additional credentials to function correctly. Contact us to request access.
 
-The `WeDoBooks SDK` includes Firebase SDK `v11.13.0`, which is statically bundled within the SDK. If your host app also uses Firebase, please notify us, as this may lead to runtime conflicts.
-
 ---
 
 ## Setup
@@ -18,7 +16,7 @@ To get started, you’ll need the following (provided by WeDoBooks upon request)
   (you can use a `.netrc` file to avoid repeated login prompts in Xcode — see below).
 - A demo user ID for a user in our demo backend  
   (can be provided at runtime via `Secrets.xcconfig` — see below).
-- Reader credentials (key and secret)  
+- Reader credentials (key and secret)
   (also provided via `Secrets.xcconfig`).
 - Custom token URL which is used to get a sign in token for the demo user until you own backend is able to provide it for you.
   (also provided via `Secrets.xcconfig`).
@@ -82,7 +80,7 @@ Working with the SDK generally follows this pattern:
 
 - SDK functionality is organized into namespaces, accessible via properties on the `WeDoBooksFacade` instance.  
   Current namespaces include:  
-  `bookOperations`, `storageOperations`, `configuration`, `events`, `localization`, `styling`, and `userOperations`.
+  `bookOperations`, `storageOperations`, `configuration`, `events`, `headlessAudioPlayer`, `localization`, `styling`, and `userOperations`.
 
 - After setup, you can configure the SDK using these namespace properties — for example, to:
   - Apply custom styling instead of default themes

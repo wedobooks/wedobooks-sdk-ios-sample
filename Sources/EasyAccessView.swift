@@ -109,12 +109,12 @@ final class EasyAccessView: UIView {
         
         titleLabel.text = data.checkout.title
         if data.checkout.author.count <= 1 {
-            authorsLabel.text = data.checkout.fixedAuthor
+            authorsLabel.text = data.checkout.author.first
         } else {
-            if data.checkout.fixedAuthors.count > 2 {
-                authorsLabel.text = [data.checkout.fixedAuthors[0...data.checkout.fixedAuthors.count - 2].joined(separator: ", "), data.checkout.fixedAuthors.last!].joined(separator: " & ")
+            if data.checkout.author.count > 2 {
+                authorsLabel.text = [data.checkout.author[0...data.checkout.author.count - 2].joined(separator: ", "), data.checkout.author.last!].joined(separator: " & ")
             } else {
-                authorsLabel.text = data.checkout.fixedAuthors.joined(separator: " & ")
+                authorsLabel.text = data.checkout.author.joined(separator: " & ")
             }
         }
         coverImageView.image = UIImage(named: "CustomCover")

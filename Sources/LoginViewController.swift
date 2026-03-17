@@ -83,16 +83,10 @@ final class LoginViewController: UIViewController {
         }
     }
     
-    private func obtainDemoUserTokenAndSignIn() async throws -> String? {
-        guard let encodedURL = Bundle.main.infoDictionary?["CUSTOM_TOKEN_URL"] as? String,
-              let url = encodedURL.removingPercentEncoding,
-              let userId = Bundle.main.infoDictionary?["USER_ID"] as? String else {
-            return nil
-        }
+    private func obtainDemoUserTokenAndSignIn() async throws -> String? {        
+        var request = URLRequest(url: URL(string: currentEnv.tokenUrl)!)
         
-        var request = URLRequest(url: URL(string: url)!)
-        
-        let body = try! JSONSerialization.data(withJSONObject: ["uid": userId], options: [])
+        let body = try! JSONSerialization.data(withJSONObject: ["uid": currentEnv.userId], options: [])
         
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

@@ -53,7 +53,7 @@ class MainViewController: UIViewController {
             fatalError("Missing secrets for the reader")
         }
         
-        let sdkGoogleInfoFileName = "GoogleService-Info-SDK.plist"
+        let sdkGoogleInfoFileName = currentEnv.firebaseFile
         guard let sdkGoogleInfoFilePath = Bundle.main.path(
             forResource: sdkGoogleInfoFileName,
             ofType: nil
@@ -64,6 +64,7 @@ class MainViewController: UIViewController {
         try! WeDoBooksFacade.shared.setup(
             readerKey: readerKey,
             readerSecret: readerSecret,
+            mode: currentEnv.mode,
             firebaseAdapterFactory: FirebaseAdapterFactory(),
             firebaseConfigFilePath: sdkGoogleInfoFilePath
         )

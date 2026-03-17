@@ -187,7 +187,7 @@ final class StatsViewController: UIViewController {
     
     private func presentCheckoutPicker(checkouts: [Checkout]) {
         let items = checkouts.map {
-            ($0.title, $0.fixedAuthors.joined(separator: ", "), $0.isbn)
+            ($0.title, $0.author.joined(separator: ", "), $0.materialId)
         }
         let picker = CheckoutPickerViewController(items: items) { [weak self] selectedIndex in
             let selected = checkouts[selectedIndex]
