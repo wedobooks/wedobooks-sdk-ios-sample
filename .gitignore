@@ -92,3 +92,5 @@ Secrets.xcconfig
 ThirdParty/**/*
 GoogleService-Info.plist
 GoogleService-Info-SDK.plist
+GoogleService-Info-IR-SDK.plist
+GoogleService-Info-Biblio-SDK.plist
