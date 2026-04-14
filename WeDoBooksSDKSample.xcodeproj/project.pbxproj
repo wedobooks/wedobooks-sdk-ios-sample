@@ -37,9 +37,6 @@
 				Assets.xcassets,
 				"Fonts/Inter-Bold.ttf",
 				"Fonts/Inter-Regular.ttf",
-				"GoogleService-Info-Biblio-SDK.plist",
-				"GoogleService-Info-IR-SDK.plist",
-				"GoogleService-Info-SDK.plist",
 				PrivacyInfo.xcprivacy,
 			);
 			target = 6FF358572D8D96AB0012A988 /* WeDoBooksSDKSample */;
@@ -395,7 +392,7 @@
 			repositoryURL = "https://github.com/wedobooks/wedobooks-sdk-ios-spm";
 			requirement = {
 				kind = exactVersion;
-				version = 1.1.0;
+				version = 1.2.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
