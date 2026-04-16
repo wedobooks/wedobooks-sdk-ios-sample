@@ -78,8 +78,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/google/gtm-session-fetcher.git",
       "state" : {
-        "revision" : "c756a29784521063b6a1202907e2cc47f41b667c",
-        "version" : "4.5.0"
+        "revision" : "0be208810d2e8b90fcd2464d1816723b47819fe7",
+        "version" : "5.2.0"
       }
     },
     {
@@ -123,8 +123,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/wedobooks/wedobooks-sdk-ios-firebase-interfaces.git",
       "state" : {
-        "revision" : "a7a9571ed2c12f6c30eefac5ed7ca0ba2b82df6b",
-        "version" : "1.1.2"
+        "revision" : "266a539c41226566192f47029794110e707a2051",
+        "version" : "1.2.0"
       }
     },
     {
@@ -132,8 +132,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/wedobooks/wedobooks-sdk-ios-firebase-provider.git",
       "state" : {
-        "revision" : "9c417eb2493f4c19f0fb7db8a7f8dac96f21fe7f",
-        "version" : "1.1.1"
+        "revision" : "382493415b89fd11b140804683dc902043c46275",
+        "version" : "1.1.2"
       }
     },
     {
@@ -141,8 +141,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/wedobooks/wedobooks-sdk-ios-spm",
       "state" : {
-        "revision" : "f2ae42ce5a876eaa54faa8aa577f252601114477",
-        "version" : "1.2.0"
+        "revision" : "60e26a68c219ca46a0befab4ce2282b628ffd196",
+        "version" : "1.2.1"
       }
     }
   ],
