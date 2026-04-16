@@ -9,6 +9,18 @@ import Combine
 import UIKit
 import WeDoBooksSDK
 
+extension StatEntry {
+    static let empty = StatEntry(
+        audioMinutes: 0,
+        ebookMinutes: 0,
+        minutesRead: 0,
+        audioSeconds: 0,
+        ebookSeconds: 0,
+        secondsRead: 0,
+        wordsRead: 0
+    )
+}
+
 final class StatsViewController: UIViewController {
     private var cancellables: Set<AnyCancellable> = []
     
