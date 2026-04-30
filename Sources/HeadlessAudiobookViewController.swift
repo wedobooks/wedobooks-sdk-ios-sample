@@ -72,7 +72,7 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
     private let stateLabel = HeadlessAudiobookViewController.makeStatusLabel("State: not loaded")
     private let positionLabel = HeadlessAudiobookViewController.makeStatusLabel("Position: n/a")
     private let durationLabel = HeadlessAudiobookViewController.makeStatusLabel("Duration: n/a")
-    private let downloadStatusLabel = HeadlessAudiobookViewController.makeStatusLabel("Download status: n/a")
+    private let downloadStatusLabel = HeadlessAudiobookViewController.makeStatusLabel("Download statuses: n/a")
 
     private lazy var numberInputAccessoryToolbar: UIToolbar = {
         let toolbar = UIToolbar()
@@ -245,7 +245,7 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
         stateLabel.text = "State: not loaded"
         positionLabel.text = "Position: n/a"
         durationLabel.text = "Duration: n/a"
-        downloadStatusLabel.text = "Download status: n/a"
+        downloadStatusLabel.text = "Download statuses: n/a"
         setLoadControlsEnabled(true)
     }
 
@@ -294,6 +294,16 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
             .onError
             .sink { [weak self] error in
                 self?.appendLog("storage onError emitted: \(error)")
+            }
+            .store(in: &cancellables)
+
+        WeDoBooksFacade.shared
+            .storageOperations
+            .downloadStatuses
+            .sink { [weak self] statuses in
+                let formattedStatuses = self?.formattedDownloadStatuses(statuses) ?? "n/a"
+                self?.downloadStatusLabel.text = "Download statuses: \(formattedStatuses)"
+                self?.appendLog("storage downloadStatuses emitted: \(formattedStatuses)")
             }
             .store(in: &cancellables)
     }
@@ -422,7 +432,7 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
                 let status = try WeDoBooksFacade.shared
                     .storageOperations
                     .downloadStatus(book: checkout)
-                downloadStatusLabel.text = "Download status: \(status)"
+                downloadStatusLabel.text = "Download statuses: \(checkout.materialId): \(status)"
                 appendLog("downloadStatus(book:) -> \(status)")
             } catch {
                 appendLog("downloadStatus(book:) failed: \(error)")
@@ -500,6 +510,18 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
         }
 
         return value
+    }
+
+    private func formattedDownloadStatuses(_ statuses: [String: StorageDownloadStatus]) -> String {
+        guard statuses.isEmpty == false else {
+            return "n/a"
+        }
+
+        return statuses.keys.sorted().compactMap { isbn in
+            guard let status = statuses[isbn] else { return nil }
+            return "\(isbn): \(status)"
+        }
+        .joined(separator: ", ")
     }
 
     private func appendLog(_ message: String) {
