@@ -8,6 +8,13 @@ It primarily demonstrates how to sign in with a user, check out a book, and open
 
 ---
 
+## Documentation
+
+We currently have 2 main pieces of documentation apart from the sample app code itself:
+
+- [iOS introduction.pdf](./iOS%20SDK%20Introduction.pdf)
+- [Zipped Apple docs](./WeDoBooksSDK.doccarchive.zip)
+
 ## Setup
 
 To get started, you’ll need the following (provided by WeDoBooks upon request):
