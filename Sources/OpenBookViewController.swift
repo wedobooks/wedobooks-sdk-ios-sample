@@ -263,7 +263,7 @@ final class OpenBookViewController: UIViewController {
                 // Comment below for easy changing between custom url and custom image for testing
 //                let image = UIImage(named: "CustomCover")!
                 do {
-                    try WeDoBooksFacade.shared
+                    try await WeDoBooksFacade.shared
                         .bookOperations
                         .openCheckout(
                             checkout,
@@ -293,7 +293,7 @@ final class OpenBookViewController: UIViewController {
             switch checkoutResult {
             case .success(let checkout):
                 do {
-                    try WeDoBooksFacade.shared.bookOperations.openCheckout(checkout, presentedBy: self)
+                    try await WeDoBooksFacade.shared.bookOperations.openCheckout(checkout, presentedBy: self)
                 } catch {
                     print("openCheckout from Open ebook failed: \(error)")
                     openEBookButton.isEnabled = true
@@ -356,12 +356,14 @@ extension OpenBookViewController: EasyAccessViewDelegate {
     }
 
     func didActivate(checkout: Checkout) {
-        do {
-            try WeDoBooksFacade.shared
-                .bookOperations
-                .openCheckout(checkout, presentedBy: self)
-        } catch {
-            print("openCheckout from EasyAccess failed: \(error)")
+        Task { @MainActor in
+            do {
+                try await WeDoBooksFacade.shared
+                    .bookOperations
+                    .openCheckout(checkout, presentedBy: self)
+            } catch {
+                print("openCheckout from EasyAccess failed: \(error)")
+            }
         }
     }
 }

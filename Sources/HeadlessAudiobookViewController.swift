@@ -318,7 +318,7 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
             guard let checkout = await ensureDemoAudiobookCheckout() else { return }
 
             do {
-                try WeDoBooksFacade.shared
+                try await WeDoBooksFacade.shared
                     .headlessAudioPlayer
                     .loadBook(book: checkout, startPosition: startPosition)
                 checkoutLabel.text = "Checkout: \(checkout.title) (\(checkout.materialId))"
