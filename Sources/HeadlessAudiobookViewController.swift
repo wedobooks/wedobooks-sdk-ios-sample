@@ -3,6 +3,7 @@
 //  DevApp
 //
 //  Created by Bo Gosmer on 24/02/2026.
+//  Copyright © 2026 WeDoBooks A/S. All rights reserved.
 //
 
 import Combine
