@@ -3,6 +3,7 @@
 //  WeDoBooksSDKSample
 //
 //  Created by Bo Gosmer on 16/06/2025.
+//  Copyright © 2025 WeDoBooks A/S. All rights reserved.
 //
 
 import UIKit
@@ -16,11 +17,12 @@ extension UIButton {
 
 extension UIButton.Configuration {
     static func standardConfiguration(for title: String) -> UIButton.Configuration {
-        var config = UIButton.Configuration.bordered()
+        var config = UIButton.Configuration.filled()
         config.title = title
-        config.baseForegroundColor = .label
+        config.baseBackgroundColor = Theme.buttonFill
+        config.baseForegroundColor = Theme.buttonText
         config.cornerStyle = .fixed
-        config.background.cornerRadius = 0
+        config.background.cornerRadius = Theme.buttonCornerRadius
         return config
     }
 }
