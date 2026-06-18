@@ -3,7 +3,6 @@
 //  DevApp
 //
 //  Created by Bo Gosmer on 24/02/2026.
-//  Copyright © 2026 WeDoBooks A/S. All rights reserved.
 //
 
 import Combine
@@ -59,6 +58,7 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
     )
 
     private let loadBookButton = UIButton(title: "Load book")
+    private let loadSampleButton = UIButton(title: "Load sample")
     private let playButton = UIButton(title: "Play")
     private let pauseButton = UIButton(title: "Pause")
     private let seekButton = UIButton(title: "Seek")
@@ -136,6 +136,13 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
         hydrateLoadedSessionState()
     }
 
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        if isMovingFromParent {
+            WeDoBooksFacade.shared.bookOperations.stopAudioPlayer()
+        }
+    }
+
     private func setupViewHierarchy() {
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
@@ -165,11 +172,12 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
 
         let transportButtonsRow = makeButtonRow(buttons: [playButton, pauseButton])
         let offlineButtonsRow = makeButtonRow(buttons: [downloadButton, removeDownloadButton])
+        let loadButtonsRow = makeButtonRow(buttons: [loadBookButton, loadSampleButton])
 
         [
             HeadlessAudiobookViewController.makeSectionLabel("Load"),
             startPositionField,
-            loadBookButton,
+            loadButtonsRow,
             checkoutLabel,
             stateLabel,
 
@@ -204,7 +212,6 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
         scrollView.verticalScrollIndicatorInsets.bottom = 20
         
         [
-            loadBookButton,
             seekButton,
             setRateButton,
             refreshMetricsButton,
@@ -252,6 +259,7 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
 
     private func setupControlActions() {
         loadBookButton.addTarget(self, action: #selector(loadBookTapped), for: .touchUpInside)
+        loadSampleButton.addTarget(self, action: #selector(loadSampleTapped), for: .touchUpInside)
         playButton.addTarget(self, action: #selector(playTapped), for: .touchUpInside)
         pauseButton.addTarget(self, action: #selector(pauseTapped), for: .touchUpInside)
         seekButton.addTarget(self, action: #selector(seekTapped), for: .touchUpInside)
@@ -327,6 +335,22 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
                 appendLog("loadBook succeeded (isbn: \(checkout.materialId), start: \(startPosition))")
             } catch {
                 appendLog("loadBook failed: \(error)")
+            }
+        }
+    }
+
+    @objc
+    private func loadSampleTapped() {
+        Task { @MainActor in
+            do {
+                try await WeDoBooksFacade.shared
+                    .headlessAudioPlayer
+                    .loadSample(for: Constants.demoAudiobookISBN)
+                checkoutLabel.text = "Checkout: sample (\(Constants.demoAudiobookISBN))"
+                setLoadControlsEnabled(false)
+                appendLog("loadSample requested (isbn: \(Constants.demoAudiobookISBN))")
+            } catch {
+                appendLog("loadSample failed: \(error)")
             }
         }
     }
@@ -540,6 +564,7 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
 
     private func setLoadControlsEnabled(_ isEnabled: Bool) {
         loadBookButton.isEnabled = isEnabled
+        loadSampleButton.isEnabled = isEnabled
         startPositionField.isEnabled = isEnabled
     }
 
