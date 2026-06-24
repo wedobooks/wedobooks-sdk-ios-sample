@@ -95,16 +95,93 @@ final class StatsTabViewController: UIViewController {
         return result
     }()
 
-    private var pages: [PageModel] = []
-
-    private lazy var filterStack: UIStackView = {
-        let result = UIStackView(arrangedSubviews: [filterButton, clearFilterButton])
+    private lazy var contentScrollView: UIScrollView = {
+        let result = UIScrollView()
         result.translatesAutoresizingMaskIntoConstraints = false
-        result.axis = .vertical
-        result.alignment = .center
-        result.spacing = 4
+        result.showsVerticalScrollIndicator = true
+        result.showsHorizontalScrollIndicator = false
+        result.alwaysBounceVertical = true
         return result
     }()
+
+    private let contentStack: UIStackView = {
+        let result = UIStackView()
+        result.translatesAutoresizingMaskIntoConstraints = false
+        result.axis = .vertical
+        result.alignment = .fill
+        result.spacing = 20
+        return result
+    }()
+
+    private let historyHeaderLabel: UILabel = {
+        let result = UILabel()
+        result.translatesAutoresizingMaskIntoConstraints = false
+        result.text = "History"
+        result.font = .systemFont(ofSize: 20, weight: .bold)
+        result.textColor = .label
+        result.textAlignment = .center
+        return result
+    }()
+
+    private lazy var historyScrollView: UIScrollView = {
+        let result = UIScrollView()
+        result.translatesAutoresizingMaskIntoConstraints = false
+        result.isPagingEnabled = true
+        result.showsHorizontalScrollIndicator = false
+        result.showsVerticalScrollIndicator = false
+        result.delegate = self
+        return result
+    }()
+
+    private let historyStack: UIStackView = {
+        let result = UIStackView()
+        result.translatesAutoresizingMaskIntoConstraints = false
+        result.axis = .horizontal
+        result.alignment = .fill
+        result.distribution = .fillEqually
+        result.spacing = 0
+        return result
+    }()
+
+    private let historyPageControl: UIPageControl = {
+        let result = UIPageControl()
+        result.translatesAutoresizingMaskIntoConstraints = false
+        result.currentPageIndicatorTintColor = Theme.primary
+        result.pageIndicatorTintColor = UIColor.systemGray3
+        result.numberOfPages = 0
+        result.isUserInteractionEnabled = false
+        return result
+    }()
+
+    private let historyEmptyLabel: UILabel = {
+        let result = UILabel()
+        result.translatesAutoresizingMaskIntoConstraints = false
+        result.text = "No history yet"
+        result.font = .systemFont(ofSize: 15, weight: .regular)
+        result.textColor = .secondaryLabel
+        result.textAlignment = .center
+        result.isHidden = true
+        return result
+    }()
+
+    private var pages: [PageModel] = []
+    private var historyItems: [HistoryItem] = []
+    private var historyTask: Task<Void, Never>?
+    // Per-operation debounce sets so a mark-complete in flight does not block a
+    // delete (or vice versa) on the same card; they guard against double-taps of
+    // the *same* action only.
+    private var completingMaterialIds: Set<String> = []
+    private var removingMaterialIds: Set<String> = []
+    private var mutationTasks: [Task<Void, Never>] = []
+    // Materials the user marked complete this session. Keeps the card showing
+    // "Completed" across the reload, masking read-after-write lag between the
+    // markCompleted callable and the direct Firestore list() read.
+    private var completedOverrides: Set<String> = []
+
+    deinit {
+        historyTask?.cancel()
+        mutationTasks.forEach { $0.cancel() }
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -119,14 +196,33 @@ final class StatsTabViewController: UIViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         loadPages()
+        loadHistory()
     }
+
+    private lazy var filterStack: UIStackView = {
+        let result = UIStackView(arrangedSubviews: [filterButton, clearFilterButton])
+        result.translatesAutoresizingMaskIntoConstraints = false
+        result.axis = .vertical
+        result.alignment = .center
+        result.spacing = 4
+        return result
+    }()
 
     private func setupViewHierarchy() {
         view.addSubview(filterStack)
-        view.addSubview(pagesScrollView)
-        view.addSubview(pageControl)
-        view.addSubview(emptyStateLabel)
+        view.addSubview(contentScrollView)
+
+        contentScrollView.addSubview(contentStack)
         pagesScrollView.addSubview(pagesStack)
+        historyScrollView.addSubview(historyStack)
+
+        // emptyStateLabel sits in the stats slot (shown opposite pagesScrollView)
+        // so "No stats yet" occupies the pager's place rather than overlaying the
+        // independently-rendered history section below it.
+        [pagesScrollView, pageControl, emptyStateLabel, historyHeaderLabel, historyScrollView, historyPageControl, historyEmptyLabel]
+            .forEach(contentStack.addArrangedSubview)
+        contentStack.setCustomSpacing(28, after: pageControl)
+        contentStack.setCustomSpacing(12, after: historyHeaderLabel)
 
         NSLayoutConstraint.activate([
             filterStack.topAnchor.constraint(equalTo: view.topAnchor, constant: 24),
@@ -134,23 +230,28 @@ final class StatsTabViewController: UIViewController {
             filterButton.widthAnchor.constraint(equalToConstant: 220),
             filterButton.heightAnchor.constraint(equalToConstant: 48),
 
-            pagesScrollView.topAnchor.constraint(equalTo: filterStack.bottomAnchor, constant: 20),
-            pagesScrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            pagesScrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            pagesScrollView.heightAnchor.constraint(equalTo: pagesStack.heightAnchor),
+            contentScrollView.topAnchor.constraint(equalTo: filterStack.bottomAnchor, constant: 20),
+            contentScrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            contentScrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            contentScrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
+            contentStack.topAnchor.constraint(equalTo: contentScrollView.contentLayoutGuide.topAnchor),
+            contentStack.leadingAnchor.constraint(equalTo: contentScrollView.contentLayoutGuide.leadingAnchor),
+            contentStack.trailingAnchor.constraint(equalTo: contentScrollView.contentLayoutGuide.trailingAnchor),
+            contentStack.bottomAnchor.constraint(equalTo: contentScrollView.contentLayoutGuide.bottomAnchor, constant: -24),
+            contentStack.widthAnchor.constraint(equalTo: contentScrollView.frameLayoutGuide.widthAnchor),
+
+            pagesScrollView.heightAnchor.constraint(equalTo: pagesStack.heightAnchor),
             pagesStack.topAnchor.constraint(equalTo: pagesScrollView.contentLayoutGuide.topAnchor),
             pagesStack.leadingAnchor.constraint(equalTo: pagesScrollView.contentLayoutGuide.leadingAnchor),
             pagesStack.trailingAnchor.constraint(equalTo: pagesScrollView.contentLayoutGuide.trailingAnchor),
             pagesStack.bottomAnchor.constraint(equalTo: pagesScrollView.contentLayoutGuide.bottomAnchor),
 
-            pageControl.topAnchor.constraint(equalTo: pagesScrollView.bottomAnchor, constant: 20),
-            pageControl.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-
-            emptyStateLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            emptyStateLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            emptyStateLabel.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 20),
-            emptyStateLabel.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -20),
+            historyScrollView.heightAnchor.constraint(equalTo: historyStack.heightAnchor),
+            historyStack.topAnchor.constraint(equalTo: historyScrollView.contentLayoutGuide.topAnchor),
+            historyStack.leadingAnchor.constraint(equalTo: historyScrollView.contentLayoutGuide.leadingAnchor),
+            historyStack.trailingAnchor.constraint(equalTo: historyScrollView.contentLayoutGuide.trailingAnchor),
+            historyStack.bottomAnchor.constraint(equalTo: historyScrollView.contentLayoutGuide.bottomAnchor),
         ])
     }
 
@@ -279,6 +380,130 @@ final class StatsTabViewController: UIViewController {
         pagesScrollView.setContentOffset(.zero, animated: false)
     }
 
+    private func loadHistory() {
+        historyTask?.cancel()
+        historyTask = Task { @MainActor [weak self] in
+            let result = await WeDoBooksFacade.shared.historyOperations.list()
+            guard let self, !Task.isCancelled else { return }
+            switch result {
+            case .success(let page):
+                self.historyItems = page.items
+                self.completedOverrides.formIntersection(page.items.map(\.materialId))
+                self.historyEmptyLabel.text = "No history yet"
+            case .failure(let error):
+                print("historyOperations.list failed: \(error)")
+                self.historyItems = []
+                self.historyEmptyLabel.text = Self.emptyMessage(for: error)
+            }
+            self.renderHistory()
+        }
+    }
+
+    private static func emptyMessage(for error: HistoryError) -> String {
+        switch error {
+        case .unsupportedInLibraryMode:
+            return "History is unavailable in library mode"
+        case .noUserSignedIn:
+            return "Sign in to see history"
+        default:
+            return "Couldn't load history"
+        }
+    }
+
+    private func markComplete(_ item: HistoryItem) {
+        guard completingMaterialIds.insert(item.materialId).inserted else { return }
+        let task = Task { @MainActor [weak self] in
+            let result = await WeDoBooksFacade.shared.historyOperations.markCompleted(materialId: item.materialId)
+            guard let self else { return }
+            self.completingMaterialIds.remove(item.materialId)
+            switch result {
+            case .success:
+                self.completedOverrides.insert(item.materialId)
+                self.loadHistory()
+            case .failure(let error):
+                print("historyOperations.markCompleted failed: \(error)")
+                self.presentError(title: "Failed to mark as complete", error)
+            }
+        }
+        mutationTasks.append(task)
+    }
+
+    private func removeHistory(_ item: HistoryItem) {
+        guard removingMaterialIds.insert(item.materialId).inserted else { return }
+        let task = Task { @MainActor [weak self] in
+            let result = await WeDoBooksFacade.shared.historyOperations.remove(materialId: item.materialId)
+            guard let self else { return }
+            self.removingMaterialIds.remove(item.materialId)
+            switch result {
+            case .success:
+                self.loadHistory()
+            case .failure(let error):
+                print("historyOperations.remove failed: \(error)")
+                self.presentError(title: "Failed to remove from history", error)
+            }
+        }
+        mutationTasks.append(task)
+    }
+
+    private func presentError(title: String, _ error: HistoryError) {
+        let alert = UIAlertController(
+            title: title,
+            message: String(describing: error),
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
+    }
+
+    private func renderHistory() {
+        // Preserve the page the user is on so a mark-complete / remove (which both
+        // reload) doesn't snap the pager back to the first card.
+        let previousPage = historyPageControl.currentPage
+        historyStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+
+        for item in historyItems {
+            let pageView = UIView()
+            pageView.translatesAutoresizingMaskIntoConstraints = false
+            pageView.backgroundColor = .clear
+
+            let card = HistoryCardView()
+            card.translatesAutoresizingMaskIntoConstraints = false
+            let isCompleted = item.status == .completed || completedOverrides.contains(item.materialId)
+            card.configure(
+                item: item,
+                isCompleted: isCompleted,
+                onMarkComplete: { [weak self] in self?.markComplete(item) },
+                onDelete: { [weak self] in self?.removeHistory(item) }
+            )
+            pageView.addSubview(card)
+
+            NSLayoutConstraint.activate([
+                card.topAnchor.constraint(equalTo: pageView.topAnchor, constant: 8),
+                card.leadingAnchor.constraint(equalTo: pageView.leadingAnchor, constant: 16),
+                card.trailingAnchor.constraint(equalTo: pageView.trailingAnchor, constant: -16),
+                card.bottomAnchor.constraint(lessThanOrEqualTo: pageView.bottomAnchor, constant: -16),
+            ])
+
+            historyStack.addArrangedSubview(pageView)
+            pageView.widthAnchor.constraint(equalTo: historyScrollView.frameLayoutGuide.widthAnchor).isActive = true
+        }
+
+        let hasHistory = !historyItems.isEmpty
+        let targetPage = max(0, min(previousPage, historyItems.count - 1))
+        historyPageControl.numberOfPages = historyItems.count
+        historyPageControl.currentPage = targetPage
+        historyPageControl.isHidden = historyItems.count <= 1
+        historyHeaderLabel.isHidden = !hasHistory
+        historyScrollView.isHidden = !hasHistory
+        historyEmptyLabel.isHidden = hasHistory
+
+        // Restore the scroll offset to the preserved page once the rebuilt content
+        // is laid out (bounds.width is 0 before layout, which safely yields .zero).
+        historyScrollView.layoutIfNeeded()
+        let offsetX = CGFloat(targetPage) * historyScrollView.bounds.width
+        historyScrollView.setContentOffset(CGPoint(x: offsetX, y: 0), animated: false)
+    }
+
     private func sumStats(_ stats: [String: StatEntry]) -> StatEntry {
         stats.reduce(StatEntry.empty) { partial, kv in
             let entry = kv.value
@@ -323,8 +548,12 @@ final class StatsTabViewController: UIViewController {
 
 extension StatsTabViewController: UIScrollViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        guard scrollView === pagesScrollView, scrollView.bounds.width > 0 else { return }
+        guard scrollView.bounds.width > 0 else { return }
         let page = Int((scrollView.contentOffset.x + scrollView.bounds.width / 2) / scrollView.bounds.width)
-        pageControl.currentPage = max(0, min(page, max(0, pages.count - 1)))
+        if scrollView === pagesScrollView {
+            pageControl.currentPage = max(0, min(page, max(0, pages.count - 1)))
+        } else if scrollView === historyScrollView {
+            historyPageControl.currentPage = max(0, min(page, max(0, historyItems.count - 1)))
+        }
     }
 }
