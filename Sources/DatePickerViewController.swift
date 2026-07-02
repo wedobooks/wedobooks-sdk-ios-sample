@@ -1,6 +1,6 @@
 //
 //  DatePickerViewController.swift
-//  DevApp
+//  WeDoBooksSDKSample
 //
 //  Created by Bo Gosmer on 08/07/2025.
 //  Copyright © 2025 WeDoBooks A/S. All rights reserved.

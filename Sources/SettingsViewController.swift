@@ -104,6 +104,11 @@ final class SettingsViewController: UIViewController {
                     self?.toggleDarkMode()
                 },
             ]),
+            SectionModel(title: "HISTORY", buttons: [
+                ButtonModel(title: "Add history entry", style: .standard) { [weak self] in
+                    self?.addHistoryEntry()
+                },
+            ]),
             SectionModel(title: "ACCOUNT", buttons: [
                 ButtonModel(title: "Sign out", style: .destructive) { [weak self] in
                     self?.delegate?.settingsDidRequestLogout()
@@ -168,6 +173,20 @@ final class SettingsViewController: UIViewController {
 
     private func openDevices() {
         navigationController?.pushViewController(DevicesViewController(), animated: true)
+    }
+
+    private func addHistoryEntry() {
+        let entryVC = AddHistoryEntryViewController()
+        if let sheet = entryVC.sheetPresentationController {
+            if #available(iOS 16.0, *) {
+                sheet.detents = [.custom(identifier: .init("addHistoryEntry")) { _ in 300 }]
+            } else {
+                sheet.detents = [.medium()]
+            }
+            sheet.prefersGrabberVisible = true
+            sheet.preferredCornerRadius = 20
+        }
+        present(entryVC, animated: true)
     }
 
     private func stopAudio() {
