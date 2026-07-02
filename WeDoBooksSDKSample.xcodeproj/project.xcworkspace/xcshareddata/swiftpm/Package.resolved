@@ -123,8 +123,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/wedobooks/wedobooks-sdk-ios-firebase-interfaces.git",
       "state" : {
-        "revision" : "266a539c41226566192f47029794110e707a2051",
-        "version" : "1.2.0"
+        "revision" : "0389671ac45bcf1da25258412faba7be644d2b1a",
+        "version" : "1.3.0"
       }
     },
     {
@@ -132,8 +132,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/wedobooks/wedobooks-sdk-ios-firebase-provider.git",
       "state" : {
-        "revision" : "7ed98024d4fd682ee001795d506a79bde0a51178",
-        "version" : "1.1.3"
+        "revision" : "f71528942b062bc492f0e8e8cd254bf60dc65858",
+        "version" : "1.2.0"
       }
     },
     {
@@ -141,8 +141,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/wedobooks/wedobooks-sdk-ios-spm",
       "state" : {
-        "revision" : "407e388b3efbbec52592408e9112054eee9d4773",
-        "version" : "1.3.3"
+        "revision" : "79c275de77d0c50bc08ebda70d1113a7196823c2",
+        "version" : "1.5.0"
       }
     }
   ],
