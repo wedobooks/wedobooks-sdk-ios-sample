@@ -19,6 +19,8 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
     private var cancellables: Set<AnyCancellable> = []
     private var audiobookCheckout: Checkout?
 
+    private let customPlayerProgressEnabled = SampleProgressConfig.customPlayerProgress
+
     private let scrollView: UIScrollView = {
         let result = UIScrollView()
         result.translatesAutoresizingMaskIntoConstraints = false
@@ -119,7 +121,8 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
         setupKeyboardHandling()
         setupControlActions()
         setupBindings()
-        
+        configureStartPositionFieldForProgressMode()
+
         do {
             let rate = try WeDoBooksFacade.shared
                 .headlessAudioPlayer
@@ -319,8 +322,16 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
 
     @objc
     private func loadBookTapped() {
-        guard let startPosition = readDouble(from: startPositionField, fieldName: "start position") else {
-            return
+        // Only supply a start position when custom player progress is enabled. Otherwise the SDK
+        // restores its own saved bookmark and rejects a supplied position, so we omit it.
+        let startPosition: Double?
+        if customPlayerProgressEnabled {
+            guard let value = readDouble(from: startPositionField, fieldName: "start position") else {
+                return
+            }
+            startPosition = value
+        } else {
+            startPosition = nil
         }
 
         Task { @MainActor in
@@ -332,7 +343,8 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
                     .loadBook(book: checkout, startPosition: startPosition)
                 checkoutLabel.text = "Checkout: \(checkout.title) (\(checkout.materialId))"
                 setLoadControlsEnabled(false)
-                appendLog("loadBook succeeded (isbn: \(checkout.materialId), start: \(startPosition))")
+                let startDescription = startPosition.map { "\($0)" } ?? "saved bookmark"
+                appendLog("loadBook succeeded (isbn: \(checkout.materialId), start: \(startDescription))")
             } catch {
                 appendLog("loadBook failed: \(error)")
             }
@@ -562,10 +574,19 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
         eventLogView.scrollRangeToVisible(NSRange(location: location, length: 1))
     }
 
+    private func configureStartPositionFieldForProgressMode() {
+        guard !customPlayerProgressEnabled else { return }
+        startPositionField.isEnabled = false
+        startPositionField.text = ""
+        startPositionField.placeholder = "Start position (enable custom player progress)"
+    }
+
     private func setLoadControlsEnabled(_ isEnabled: Bool) {
         loadBookButton.isEnabled = isEnabled
         loadSampleButton.isEnabled = isEnabled
-        startPositionField.isEnabled = isEnabled
+        // The start-position field only applies with custom player progress enabled; when it's
+        // disabled the SDK restores its saved bookmark and rejects a supplied position.
+        startPositionField.isEnabled = isEnabled && customPlayerProgressEnabled
     }
 
     func textFieldDidBeginEditing(_ textField: UITextField) {

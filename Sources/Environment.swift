@@ -9,6 +9,16 @@
 import Foundation
 import WeDoBooksSDK
 
+/// Selects whether the host app manages start positions ("custom progress") per format.
+/// When a flag is `false` the SDK restores its own saved bookmark on open and rejects a
+/// host-supplied start position; when `true` the host controls the initial position
+/// (audiobook via `setInitialPlayerTimestampSeconds` / headless `loadBook(startPosition:)`,
+/// ebook via `setInitialReaderCfi`). Flip a flag to enable that format's custom progress.
+enum SampleProgressConfig {
+    static let customReaderProgress = false
+    static let customPlayerProgress = false
+}
+
 struct Environment {
     let mode: WeDoBooksFacade.Mode
     let firebaseFile: String
