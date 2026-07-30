@@ -67,6 +67,10 @@ class MainViewController: UIViewController {
             readerSecret: readerSecret,
             mode: currentEnv.mode,
             firebaseAdapterFactory: FirebaseAdapterFactory(),
+            customProgressConfig: CustomProgressConfig(
+                reader: SampleProgressConfig.customReaderProgress,
+                player: SampleProgressConfig.customPlayerProgress
+            ),
             firebaseConfigFilePath: sdkGoogleInfoFilePath
         )
         WeDoBooksFacade.shared.localization.setLanguage(.english)
