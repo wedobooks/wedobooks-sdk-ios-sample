@@ -18,12 +18,14 @@ final class RootTabViewController: UIViewController {
     enum Tab: Int, CaseIterable {
         case checkouts
         case stats
+        case reservations
         case settings
 
         var title: String {
             switch self {
             case .checkouts: return "Checkouts"
             case .stats: return "Stats"
+            case .reservations: return "Reservations"
             case .settings: return "Settings"
             }
         }
@@ -56,7 +58,7 @@ final class RootTabViewController: UIViewController {
     }()
 
     private lazy var tabBar: SegmentedTabBar = {
-        let result = SegmentedTabBar(titles: Tab.allCases.map(\.title))
+        let result = SegmentedTabBar(titles: visibleTabs.map(\.title))
         result.translatesAutoresizingMaskIntoConstraints = false
         result.onSelectionChange = { [weak self] index in
             self?.activate(tabIndex: index)
@@ -82,11 +84,30 @@ final class RootTabViewController: UIViewController {
     // MARK: - Tabs
 
     private lazy var checkoutsViewController = CheckoutsViewController()
+    private lazy var reservationsViewController = ReservationsViewController()
     private lazy var statsViewController = StatsTabViewController()
     private lazy var settingsViewController = SettingsViewController()
 
+    private var isLibraryMode: Bool {
+        if case .library = currentEnv.mode { return true }
+        return false
+    }
+
+    private var visibleTabs: [Tab] {
+        Tab.allCases.filter { $0 != .reservations || isLibraryMode }
+    }
+
+    private func controller(for tab: Tab) -> UIViewController {
+        switch tab {
+        case .checkouts: return checkoutsViewController
+        case .reservations: return reservationsViewController
+        case .stats: return statsViewController
+        case .settings: return settingsViewController
+        }
+    }
+
     private var orderedTabControllers: [UIViewController] {
-        [checkoutsViewController, statsViewController, settingsViewController]
+        visibleTabs.map(controller(for:))
     }
 
     private var activeTabIndex: Int = 0
