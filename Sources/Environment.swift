@@ -26,6 +26,7 @@ struct Environment {
     let tokenUrl: String
     let audioBookIsbn: String
     let ebookIsbn: String
+    let reservationIsbn: String
 
     var modeDisplayName: String {
         switch mode {
@@ -52,5 +53,6 @@ let currentEnv = Environment(
     userId: Bundle.main.infoDictionary!["USER_ID"] as! String, // Forcing crash here if value is missing as the example app won't work without it
     tokenUrl: (Bundle.main.infoDictionary?["CUSTOM_TOKEN_URL"] as! String).removingPercentEncoding!, // Forcing crash here if value is missing as the example app won't work without it
     audioBookIsbn: "TODO", // Fill in isbn from catalog here
-    ebookIsbn: "TODO" // Fill in isbn from catalog here
+    ebookIsbn: "TODO", // Fill in isbn from catalog here
+    reservationIsbn: "TODO" // Fill in isbn from catalog here
 )
