@@ -149,7 +149,7 @@
 			mainGroup = 6FF3584F2D8D96AB0012A988;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				6F79E1EC2DCA29320062AF63 /* XCRemoteSwiftPackageReference "wedobooks-sdk-ios-spm" */,
+				5215526E3025D0F4007BF7B0 /* XCRemoteSwiftPackageReference "wedobooks-sdk-ios-spm" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6FF358592D8D96AB0012A988 /* Products */;
@@ -387,12 +387,12 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		6F79E1EC2DCA29320062AF63 /* XCRemoteSwiftPackageReference "wedobooks-sdk-ios-spm" */ = {
+		5215526E3025D0F4007BF7B0 /* XCRemoteSwiftPackageReference "wedobooks-sdk-ios-spm" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/wedobooks/wedobooks-sdk-ios-spm";
 			requirement = {
 				kind = exactVersion;
-				version = 1.7.0;
+				version = 1.7.1;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -400,7 +400,7 @@
 /* Begin XCSwiftPackageProductDependency section */
 		6FF86E052DFC4019002F3953 /* WeDoBooks */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 6F79E1EC2DCA29320062AF63 /* XCRemoteSwiftPackageReference "wedobooks-sdk-ios-spm" */;
+			package = 5215526E3025D0F4007BF7B0 /* XCRemoteSwiftPackageReference "wedobooks-sdk-ios-spm" */;
 			productName = WeDoBooks;
 		};
 /* End XCSwiftPackageProductDependency section */
