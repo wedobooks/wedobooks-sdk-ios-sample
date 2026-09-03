@@ -15,6 +15,7 @@ final class CheckoutsViewController: UIViewController {
         case notDownloaded
         case downloading(percent: Int?)
         case downloaded
+        case outOfDiskSpace
     }
 
     private var cancellables: Set<AnyCancellable> = []
@@ -150,6 +151,8 @@ final class CheckoutsViewController: UIViewController {
                     self?.removeAudiobookDownload()
                 }
             }
+        case .outOfDiskSpace:
+            return BookEntryView.ButtonModel(title: "Out of space", isEnabled: false) { }
         }
     }
 
@@ -233,7 +236,18 @@ final class CheckoutsViewController: UIViewController {
             return .downloading(percent: Int((progress * 100).rounded()))
         case .downloaded:
             return .downloaded
-        case .notDownloaded, .failure, .cancel:
+        case .notDownloaded, .cancel:
+            return .notDownloaded
+        case .failure(let reason):
+            switch reason {
+            case .missingDiskSpace:
+                return .outOfDiskSpace
+            case .other:
+                return .notDownloaded
+            @unknown default:
+                return .notDownloaded
+            }
+        @unknown default:
             return .notDownloaded
         }
     }
