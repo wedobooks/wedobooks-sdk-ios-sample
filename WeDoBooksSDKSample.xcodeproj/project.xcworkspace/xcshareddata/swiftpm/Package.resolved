@@ -141,8 +141,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/wedobooks/wedobooks-sdk-ios-spm",
       "state" : {
-        "revision" : "be75fead66e02f6cd91d4563c64af3c1daa8872e",
-        "version" : "1.7.1"
+        "revision" : "9a16ea45608e16c0b92c2e592470ec1cc0770a6d",
+        "version" : "1.8.0"
       }
     }
   ],
