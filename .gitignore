@@ -90,7 +90,7 @@ iOSInjectionProject/
 .DS_Store
 Secrets.xcconfig
 ThirdParty/**/*
-GoogleService-Info.plist
-GoogleService-Info-SDK.plist
-GoogleService-Info-IR-SDK.plist
-GoogleService-Info-Biblio-SDK.plist
+# Firebase GoogleService-Info files and any other plists are per-integrator config,
+# except the app's own Info.plist, which is tracked.
+*.plist
+!Info.plist

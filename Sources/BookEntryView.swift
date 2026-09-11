@@ -43,11 +43,21 @@ final class BookEntryView: UIView {
         return result
     }()
 
-    private let isbnLabel: UILabel = {
-        let result = UILabel()
-        result.font = .systemFont(ofSize: 14, weight: .regular)
-        result.textColor = .secondaryLabel
-        result.numberOfLines = 1
+    private let isbnField: UITextField = {
+        let result = UITextField()
+        result.attributedPlaceholder = NSAttributedString(
+            string: "ISBN",
+            attributes: [.foregroundColor: UIColor.lightGray]
+        )
+        result.borderStyle = .roundedRect
+        result.font = .systemFont(ofSize: 17, weight: .regular)
+        result.autocorrectionType = .no
+        result.autocapitalizationType = .none
+        result.keyboardType = .asciiCapable
+        result.returnKeyType = .done
+        result.clearButtonMode = .whileEditing
+        result.translatesAutoresizingMaskIntoConstraints = false
+        result.heightAnchor.constraint(equalToConstant: 44).isActive = true
         return result
     }()
 
@@ -68,12 +78,12 @@ final class BookEntryView: UIView {
     }()
 
     private lazy var headerStack: UIStackView = {
-        let result = UIStackView(arrangedSubviews: [sectionTitleLabel, isbnLabel, titleLabel, authorLabel])
+        let result = UIStackView(arrangedSubviews: [sectionTitleLabel, isbnField, titleLabel, authorLabel])
         result.translatesAutoresizingMaskIntoConstraints = false
         result.axis = .vertical
         result.spacing = 4
         result.alignment = .fill
-        result.setCustomSpacing(12, after: isbnLabel)
+        result.setCustomSpacing(12, after: isbnField)
         return result
     }()
 
@@ -89,9 +99,15 @@ final class BookEntryView: UIView {
     private var actionButtons: [UIButton] = []
     private var buttonActions: [UIButton: () -> Void] = [:]
 
+    /// The ISBN currently typed into this entry's field.
+    var isbn: String {
+        isbnField.text ?? ""
+    }
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupViewHierarchy()
+        isbnField.delegate = self
         Theme.applyCardStyle(to: self)
     }
 
@@ -113,9 +129,8 @@ final class BookEntryView: UIView {
         ])
     }
 
-    func configureHeader(sectionTitle: String, isbn: String, title: String?, author: String?) {
+    func configureHeader(sectionTitle: String, title: String?, author: String?) {
         sectionTitleLabel.text = sectionTitle
-        isbnLabel.text = "ISBN \(isbn)"
         titleLabel.text = title ?? " "
         titleLabel.isHidden = (title?.isEmpty ?? true)
         authorLabel.text = author ?? " "
@@ -166,5 +181,12 @@ final class BookEntryView: UIView {
     @objc
     private func actionButtonTapped(_ sender: UIButton) {
         buttonActions[sender]?()
+    }
+}
+
+extension BookEntryView: UITextFieldDelegate {
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        textField.resignFirstResponder()
+        return true
     }
 }

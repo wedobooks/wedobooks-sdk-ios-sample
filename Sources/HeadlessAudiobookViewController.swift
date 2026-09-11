@@ -11,10 +11,21 @@ import WeDoBooksSDK
 
 final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelegate {
     private enum Constants {
-        static let demoAudiobookISBN = currentEnv.audioBookIsbn
         static let controlHeight: CGFloat = 44
         static let keyboardScrollPadding: CGFloat = 28
     }
+    private var isbnField: UITextField = {
+        let result = UITextField()
+        let placeholder = NSAttributedString(
+            string: "ISBN",
+            attributes: [.foregroundColor: UIColor.lightGray]
+        )
+        result.attributedPlaceholder = placeholder
+        result.borderStyle = .roundedRect
+        result.translatesAutoresizingMaskIntoConstraints = false
+        return result
+    }()
+    
 
     private var cancellables: Set<AnyCancellable> = []
     private var audiobookCheckout: Checkout?
@@ -178,6 +189,7 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
         let loadButtonsRow = makeButtonRow(buttons: [loadBookButton, loadSampleButton])
 
         [
+            isbnField,
             HeadlessAudiobookViewController.makeSectionLabel("Load"),
             startPositionField,
             loadButtonsRow,
@@ -357,10 +369,10 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
             do {
                 try await WeDoBooksFacade.shared
                     .headlessAudioPlayer
-                    .loadSample(for: Constants.demoAudiobookISBN)
-                checkoutLabel.text = "Checkout: sample (\(Constants.demoAudiobookISBN))"
+                    .loadSample(for: isbnField.text ?? "")
+                checkoutLabel.text = "Checkout: sample (\(isbnField.text ?? ""))"
                 setLoadControlsEnabled(false)
-                appendLog("loadSample requested (isbn: \(Constants.demoAudiobookISBN))")
+                appendLog("loadSample requested (isbn: \(isbnField.text ?? ""))")
             } catch {
                 appendLog("loadSample failed: \(error)")
             }
@@ -483,10 +495,10 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
             return audiobookCheckout
         }
 
-        appendLog("requesting checkout for audiobook ISBN \(Constants.demoAudiobookISBN)")
+        appendLog("requesting checkout for audiobook ISBN \(isbnField.text ?? "<none>")")
         let checkoutResult = await WeDoBooksFacade.shared
             .bookOperations
-            .checkoutBook(with: Constants.demoAudiobookISBN)
+            .checkoutBook(with: isbnField.text ?? "")
 
         switch checkoutResult {
         case .success(let checkout):
