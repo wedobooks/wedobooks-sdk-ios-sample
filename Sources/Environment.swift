@@ -19,14 +19,16 @@ enum SampleProgressConfig {
     static let customPlayerProgress = false
 }
 
+/// One backend the sample app can run against, listed in `Sources/Environments.swift`.
+/// See `EnvironmentCatalog` for validation and for how the environment is picked at runtime.
 struct Environment {
+    /// Stable key used to remember the picked environment across launches. Not shown in the UI.
+    let id: String
+    /// Name shown in the environment picker on the login screen.
+    let displayName: String
     let mode: WeDoBooksFacade.Mode
     let firebaseFile: String
-    let userId: String
     let tokenUrl: String
-    let audioBookIsbn: String
-    let ebookIsbn: String
-    let reservationIsbn: String
 
     var modeDisplayName: String {
         switch mode {
@@ -45,14 +47,40 @@ struct Environment {
         }
         return projectId
     }
+
+    // MARK: Init
+
+    /// Every value except `id` may be written as `$(SOME_KEY)` to pull the value from `Info.plist`
+    /// at runtime instead of hardcoding it — which is how the token URL keeps coming from the
+    /// gitignored `Resources/Secrets.xcconfig` rather than from this public repo. (`id` stays
+    /// literal because it is the key the picked environment is remembered under.) Resolved values
+    /// are percent-decoded, as an xcconfig cannot hold a raw `//`.
+    init(
+        id: String,
+        displayName: String,
+        mode: WeDoBooksFacade.Mode,
+        firebaseFile: String,
+        tokenUrl: String
+    ) {
+        self.id = id
+        self.displayName = displayName
+        self.mode = mode
+        self.firebaseFile = Environment.resolvingInfoPlistReference(firebaseFile)
+        self.tokenUrl = Environment.resolvingInfoPlistReference(tokenUrl)
+    }
+
+    private static func resolvingInfoPlistReference(_ value: String) -> String {
+        guard value.hasPrefix("$("), value.hasSuffix(")") else { return value }
+
+        let key = String(value.dropFirst(2).dropLast())
+        guard let resolved = Bundle.main.infoDictionary?[key] as? String, !resolved.isEmpty else {
+            // Forcing crash here if value is missing as the example app won't work without it
+            fatalError("Environments.swift refers to \(value), but Info.plist has no non-empty \"\(key)\" — check Resources/Secrets.xcconfig")
+        }
+        return resolved.removingPercentEncoding ?? resolved
+    }
 }
 
-let currentEnv = Environment(
-    mode: // .streaming or .library,
-    firebaseFile: "TODO", // Fill in correct name here for example GoogleService-Info-SDK.plist if that's the name of the file in the main bundle of the app
-    userId: Bundle.main.infoDictionary!["USER_ID"] as! String, // Forcing crash here if value is missing as the example app won't work without it
-    tokenUrl: (Bundle.main.infoDictionary?["CUSTOM_TOKEN_URL"] as! String).removingPercentEncoding!, // Forcing crash here if value is missing as the example app won't work without it
-    audioBookIsbn: "TODO", // Fill in isbn from catalog here
-    ebookIsbn: "TODO", // Fill in isbn from catalog here
-    reservationIsbn: "TODO" // Fill in isbn from catalog here
-)
+/// The environment this launch runs against. Picking another one on the login screen persists the
+/// choice and closes the app, so this stays constant for the lifetime of the process.
+let currentEnv = EnvironmentCatalog.selected

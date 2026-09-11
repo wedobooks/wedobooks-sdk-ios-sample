@@ -86,7 +86,6 @@ final class ReservationsViewController: UIViewController {
         super.viewDidLoad()
 
         view.backgroundColor = .systemBackground
-        isbnField.text = currentEnv.reservationIsbn ?? currentEnv.ebookIsbn
         setupViewHierarchy()
         renderReservations([])
         renderOffers([])

@@ -59,7 +59,11 @@ class MainViewController: UIViewController {
             forResource: sdkGoogleInfoFileName,
             ofType: nil
         ) else {
-            fatalError("Path in bundle for SDK Google Info plist file not found")
+            // Setup happens before the login screen — and with it the environment picker — is
+            // shown, so a pick the app cannot start against would crash on every launch with no
+            // way back. Forget it here so the next launch returns to the default environment.
+            EnvironmentCatalog.clearSelection()
+            fatalError("Path in bundle for SDK Google Info plist file not found: \"\(sdkGoogleInfoFileName)\", named by the \"\(currentEnv.id)\" environment in Environments.swift. Add the file to the app target (or fix the name), then relaunch — any picked environment has been reset to the default (\(EnvironmentCatalog.all[0].displayName))")
         }
 
         try! WeDoBooksFacade.shared.setup(
