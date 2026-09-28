@@ -23,6 +23,14 @@ final class LoginViewController: UIViewController {
         return result
     }()
 
+    // Pull-down of the ids that have signed in on this environment before. Hidden while empty.
+    private let savedUsersButton: UIButton = {
+        let result = UIButton(configuration: .standardConfiguration(for: "Saved users"))
+        result.translatesAutoresizingMaskIntoConstraints = false
+        result.showsMenuAsPrimaryAction = true
+        return result
+    }()
+
     private lazy var environmentPicker: EnvironmentPickerView = {
         let result = EnvironmentPickerView(environments: EnvironmentCatalog.all, selected: currentEnv)
         result.translatesAutoresizingMaskIntoConstraints = false
@@ -62,32 +70,66 @@ final class LoginViewController: UIViewController {
         
         setupViewHierarchy()
         setupControlActions()
+        refreshSavedUsersMenu()
     }
     
     // MARK: Private functions
     
     private func setupViewHierarchy() {
-        view.addSubview(userIdField)
-        view.addSubview(signInButton)
+        // A stack, so the saved-users button takes no space while it's hidden.
+        let formStack = UIStackView(arrangedSubviews: [userIdField, signInButton, savedUsersButton])
+        formStack.translatesAutoresizingMaskIntoConstraints = false
+        formStack.axis = .vertical
+        formStack.spacing = 8
+
+        view.addSubview(formStack)
         view.addSubview(environmentPicker)
 
         NSLayoutConstraint.activate([
-            userIdField.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 40),
-            userIdField.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            userIdField.widthAnchor.constraint(equalToConstant: 200),
-            userIdField.heightAnchor.constraint(equalToConstant: 50),
-            
-            signInButton.topAnchor.constraint(equalTo: userIdField.bottomAnchor, constant: 8),
-            signInButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            signInButton.widthAnchor.constraint(equalToConstant: 200),
-            signInButton.heightAnchor.constraint(equalToConstant: 50),
+            formStack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 40),
+            formStack.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            formStack.widthAnchor.constraint(equalToConstant: 200),
 
-            environmentPicker.topAnchor.constraint(equalTo: signInButton.bottomAnchor, constant: 40),
+            userIdField.heightAnchor.constraint(equalToConstant: 50),
+            signInButton.heightAnchor.constraint(equalToConstant: 50),
+            savedUsersButton.heightAnchor.constraint(equalToConstant: 50),
+
+            environmentPicker.topAnchor.constraint(equalTo: formStack.bottomAnchor, constant: 40),
             environmentPicker.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             environmentPicker.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
         ])
     }
-    
+
+    private func refreshSavedUsersMenu() {
+        let userIds = SavedValues.userIds.all()
+        savedUsersButton.isHidden = userIds.isEmpty
+        guard !userIds.isEmpty else {
+            savedUsersButton.menu = nil
+            return
+        }
+
+        let picks = userIds.map { userId in
+            UIAction(title: userId, state: userId == enteredUserId ? .on : .off) { [weak self] _ in
+                self?.userIdField.text = userId
+                self?.refreshSavedUsersMenu()
+            }
+        }
+        let removals = userIds.map { userId in
+            UIAction(title: userId, attributes: .destructive) { [weak self] _ in
+                SavedValues.userIds.remove(userId)
+                self?.refreshSavedUsersMenu()
+            }
+        }
+        savedUsersButton.menu = UIMenu(children: [
+            UIMenu(options: .displayInline, children: picks),
+            UIMenu(title: "Remove", image: UIImage(systemName: "trash"), children: removals),
+        ])
+    }
+
+    private var enteredUserId: String {
+        (userIdField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     private func setupControlActions() {
         signInButton.addTarget(self, action: #selector(signInButtonTapped), for: .touchUpInside)
     }
@@ -95,6 +137,7 @@ final class LoginViewController: UIViewController {
     @objc
     private func signInButtonTapped(_ button: UIButton) {
         signInButton.isEnabled = false
+        let userId = enteredUserId
         
         SpinnerHUD.show(in: view)
         
@@ -106,13 +149,15 @@ final class LoginViewController: UIViewController {
                 signInButton.isEnabled = true
             }
 
-            guard let token = try? await obtainDemoUserTokenAndSignIn() else {
+            guard let token = try? await obtainDemoUserTokenAndSignIn(userId: userId) else {
                 return
             }
 
             let signInResult = await WeDoBooksFacade.shared.userOperations.signIn(with: token)
             switch signInResult {
             case .success(let user):
+                SavedValues.userIds.save(userId)
+                refreshSavedUsersMenu()
                 delegate?.userDidLogin()
                 print("Sign in success: \(user)")
             case .failure(let error):
@@ -166,10 +211,10 @@ final class LoginViewController: UIViewController {
         present(alert, animated: true)
     }
 
-    private func obtainDemoUserTokenAndSignIn() async throws -> String? {
+    private func obtainDemoUserTokenAndSignIn(userId: String) async throws -> String? {
         var request = URLRequest(url: URL(string: currentEnv.tokenUrl)!)
         
-        let body = try! JSONSerialization.data(withJSONObject: ["uid": userIdField.text ?? ""], options: [])
+        let body = try! JSONSerialization.data(withJSONObject: ["uid": userId], options: [])
         
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

@@ -90,6 +90,7 @@ class MainViewController: UIViewController {
         WeDoBooksFacade.shared.configuration.showFinishAudiobookButton = false
         WeDoBooksFacade.shared.configuration.showAboutAudioBookButton = false
         WeDoBooksFacade.shared.configuration.allowEbookDownloadUsingMobileData = true
+        WeDoBooksFacade.shared.configuration.showAudiobookMinimizeButton = true
 
         WeDoBooksFacade.shared.images.icons.set(.close, to: "sf:xmark.app")
         WeDoBooksFacade.shared.images.icons.set(.down, to: "down-alt")

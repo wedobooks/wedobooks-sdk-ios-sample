@@ -33,6 +33,7 @@ final class RootTabViewController: UIViewController {
 
     private var cancellables: Set<AnyCancellable> = []
     private var cancellablesForUser: Set<AnyCancellable> = []
+    private var easyAccessProgressCancellable: AnyCancellable?
 
     weak var delegate: RootTabViewControllerDelegate?
 
@@ -54,6 +55,16 @@ final class RootTabViewController: UIViewController {
         result.font = .systemFont(ofSize: 14, weight: .regular)
         result.textColor = .secondaryLabel
         result.textAlignment = .center
+        return result
+    }()
+
+    private let userIdLabel: UILabel = {
+        let result = UILabel()
+        result.translatesAutoresizingMaskIntoConstraints = false
+        result.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
+        result.textColor = .secondaryLabel
+        result.textAlignment = .center
+        result.lineBreakMode = .byTruncatingMiddle
         return result
     }()
 
@@ -137,6 +148,7 @@ final class RootTabViewController: UIViewController {
         super.viewWillAppear(animated)
 
         navigationController?.setNavigationBarHidden(true, animated: animated)
+        userIdLabel.text = WeDoBooksFacade.shared.userOperations.currentUserId.map { "User: \($0)" }
         observeEasyAccess()
     }
 
@@ -144,6 +156,7 @@ final class RootTabViewController: UIViewController {
         super.viewWillDisappear(animated)
         navigationController?.setNavigationBarHidden(false, animated: animated)
         cancellablesForUser = []
+        easyAccessProgressCancellable = nil
     }
 
     // MARK: - Setup
@@ -151,6 +164,7 @@ final class RootTabViewController: UIViewController {
     private func setupViewHierarchy() {
         view.addSubview(titleLabel)
         view.addSubview(subtitleLabel)
+        view.addSubview(userIdLabel)
         view.addSubview(tabBar)
         view.addSubview(contentContainer)
         view.addSubview(easyAccessView)
@@ -164,7 +178,11 @@ final class RootTabViewController: UIViewController {
             subtitleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             subtitleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
 
-            tabBar.topAnchor.constraint(equalTo: subtitleLabel.bottomAnchor, constant: 16),
+            userIdLabel.topAnchor.constraint(equalTo: subtitleLabel.bottomAnchor, constant: 2),
+            userIdLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            userIdLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+
+            tabBar.topAnchor.constraint(equalTo: userIdLabel.bottomAnchor, constant: 16),
             tabBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tabBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tabBar.heightAnchor.constraint(equalToConstant: 44),
@@ -206,6 +224,23 @@ final class RootTabViewController: UIViewController {
                 print("Book will close")
             }
             .store(in: &cancellables)
+
+        WeDoBooksFacade.shared
+            .events
+            .sessionInterrupted
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] event in
+                self?.checkoutsViewController.reenableActions()
+                switch event {
+                case .sessionTakenOver(let activeDevice):
+                    print("Session interrupted: taken over by device \(activeDevice)")
+                case .accessExpired:
+                    print("Session interrupted: access expired")
+                @unknown default:
+                    print("Session interrupted: \(event)")
+                }
+            }
+            .store(in: &cancellables)
     }
 
     private func observeEasyAccess() {
@@ -220,13 +255,41 @@ final class RootTabViewController: UIViewController {
                     if let data {
                         setEasyAccessVisible(true)
                         easyAccessView.configure(data: data)
+                        observeEasyAccessProgress(for: data.checkout.materialId)
                     } else {
                         setEasyAccessVisible(false)
+                        easyAccessProgressCancellable = nil
                     }
                 })
                 .store(in: &cancellablesForUser)
         } catch {
             print("easyAccess.lastOpenedBook failed: \(error)")
+        }
+    }
+
+    private func observeEasyAccessProgress(for materialId: String) {
+        do {
+            easyAccessProgressCancellable = try WeDoBooksFacade.shared
+                .bookOperations
+                .observeBookProgress(for: materialId)
+                .receive(on: DispatchQueue.main)
+                .sink(receiveValue: { details in
+                    guard let details else {
+                        print("Easy access \(materialId): no stored progress yet")
+                        return
+                    }
+
+                    switch details {
+                    case .audiobook(let audiobook):
+                        print("Easy access audiobook \(audiobook.materialId): \(audiobook.timestampSeconds)s, progress=\(audiobook.progress)")
+                    case .ebook(let ebook):
+                        print("Easy access ebook \(ebook.materialId): cfi=\(ebook.cfi ?? "nil"), progress=\(ebook.progress)")
+                    @unknown default:
+                        print("Easy access \(details.materialId): unhandled progress case")
+                    }
+                })
+        } catch {
+            print("bookOperations.observeBookProgress failed: \(error)")
         }
     }
 
@@ -293,6 +356,8 @@ extension RootTabViewController: EasyAccessViewDelegate {
 extension RootTabViewController: SettingsViewControllerDelegate {
     func settingsDidRequestLogout() {
         cancellablesForUser = []
+        easyAccessProgressCancellable = nil
+        checkoutsViewController.clearCheckouts()
         WeDoBooksFacade.shared.userOperations.signOut()
         delegate?.userDidLogout()
     }

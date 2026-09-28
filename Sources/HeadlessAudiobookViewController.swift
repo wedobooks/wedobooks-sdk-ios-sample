@@ -81,6 +81,7 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
     private let downloadButton = UIButton(title: "Download")
     private let removeDownloadButton = UIButton(title: "Remove download")
     private let downloadStatusButton = UIButton(title: "Get download status")
+    private let getChaptersButton = UIButton(title: "Get chapters")
 
     private let checkoutLabel = HeadlessAudiobookViewController.makeStatusLabel("Checkout: not loaded")
     private let stateLabel = HeadlessAudiobookViewController.makeStatusLabel("State: not loaded")
@@ -211,6 +212,9 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
             downloadStatusButton,
             downloadStatusLabel,
 
+            HeadlessAudiobookViewController.makeSectionLabel("Chapters"),
+            getChaptersButton,
+
             HeadlessAudiobookViewController.makeSectionLabel("Events"),
             eventLogView,
         ].forEach(contentStackView.addArrangedSubview)
@@ -231,6 +235,7 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
             setRateButton,
             refreshMetricsButton,
             downloadStatusButton,
+            getChaptersButton,
         ].forEach {
             $0.heightAnchor.constraint(equalToConstant: Constants.controlHeight).isActive = true
         }
@@ -283,6 +288,7 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
         downloadButton.addTarget(self, action: #selector(downloadTapped), for: .touchUpInside)
         removeDownloadButton.addTarget(self, action: #selector(removeDownloadTapped), for: .touchUpInside)
         downloadStatusButton.addTarget(self, action: #selector(downloadStatusTapped), for: .touchUpInside)
+        getChaptersButton.addTarget(self, action: #selector(getChaptersTapped), for: .touchUpInside)
     }
 
     @objc
@@ -309,7 +315,12 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
             .headlessAudioPlayer
             .onError
             .sink { [weak self] error in
-                self?.appendLog("headless onError emitted: \(error)")
+                switch error {
+                case .streamDiedOffline:
+                    self?.appendLog("headless onError: streamDiedOffline — played/seeked past the buffer offline; reloads on reconnect")
+                default:
+                    self?.appendLog("headless onError emitted: \(error)")
+                }
             }
             .store(in: &cancellables)
 
@@ -468,6 +479,28 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
                 appendLog("removeDownload(isbn:) succeeded")
             } catch {
                 appendLog("removeDownload(isbn:) failed: \(error)")
+            }
+        }
+    }
+
+    @objc
+    private func getChaptersTapped() {
+        let isbn = (isbnField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        Task { @MainActor in
+            do {
+                let chapters = try await WeDoBooksFacade.shared
+                    .bookOperations
+                    .getAudiobookChapters(for: isbn)
+                if chapters.isEmpty {
+                    appendLog("getAudiobookChapters -> no chapter metadata (isbn: \(isbn))")
+                } else {
+                    let preview = chapters
+                        .map { "{ title: \($0.title), offset_seconds: \($0.offsetSeconds) }" }
+                        .joined(separator: ", ")
+                    appendLog("getAudiobookChapters -> { chapters: [\(preview)] }")
+                }
+            } catch {
+                appendLog("getAudiobookChapters failed: \(error)")
             }
         }
     }

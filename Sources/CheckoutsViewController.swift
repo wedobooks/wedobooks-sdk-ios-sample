@@ -19,10 +19,20 @@ final class CheckoutsViewController: UIViewController {
     }
 
     private var cancellables: Set<AnyCancellable> = []
-    private var ebookCheckout: Checkout?
-    private var audiobookCheckout: Checkout?
+    private var checkoutsCancellable: AnyCancellable?
+    private var checkouts: [Checkout] = []
+    private var ebookCheckout: Checkout? {
+        checkout(isbn: ebookEntryView.isbn, type: .ebook)
+    }
+    private var audiobookCheckout: Checkout? {
+        checkout(isbn: audiobookEntryView.isbn, type: .audiobook)
+    }
     private var ebookDownloadState: DownloadUIState = .notDownloaded
     private var audiobookDownloadState: DownloadUIState = .notDownloaded
+    // Per ISBN, so the out-of-storage alert shows once per failure rather than on every emission.
+    private var lastDownloadStatuses: [String: StorageDownloadStatus] = [:]
+    // Latest emission from `downloadStatuses`, so an ISBN edit can look up the new book's state.
+    private var downloadStatuses: [String: StorageDownloadStatus] = [:]
 
     private let scrollView: UIScrollView = {
         let result = UIScrollView()
@@ -45,22 +55,45 @@ final class CheckoutsViewController: UIViewController {
     private let ebookEntryView = BookEntryView()
     private let audiobookEntryView = BookEntryView()
 
+    private lazy var currentCheckoutsButton: UIButton = {
+        let result = UIButton(configuration: .standardConfiguration(for: "All checkouts"))
+        result.translatesAutoresizingMaskIntoConstraints = false
+        result.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        result.addTarget(self, action: #selector(showCurrentCheckouts), for: .touchUpInside)
+        return result
+    }()
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
         view.backgroundColor = .systemBackground
         setupViewHierarchy()
-        refreshInitialDownloadStatuses()
+        refreshDownloadStates()
         configureEbookEntry()
         configureAudiobookEntry()
-        observeCheckouts()
+        ebookEntryView.onIsbnChange = { [weak self] in
+            guard let self else { return }
+            ebookDownloadState = downloadState(isbn: ebookEntryView.isbn)
+            configureEbookEntry()
+        }
+        audiobookEntryView.onIsbnChange = { [weak self] in
+            guard let self else { return }
+            audiobookDownloadState = downloadState(isbn: audiobookEntryView.isbn)
+            configureAudiobookEntry()
+        }
         observeDownloadStatuses()
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        observeCheckouts()
     }
 
     private func setupViewHierarchy() {
         view.addSubview(scrollView)
         scrollView.addSubview(contentStack)
 
+        contentStack.addArrangedSubview(currentCheckoutsButton)
         contentStack.addArrangedSubview(ebookEntryView)
         contentStack.addArrangedSubview(audiobookEntryView)
 
@@ -84,6 +117,10 @@ final class CheckoutsViewController: UIViewController {
             title: ebookCheckout?.title,
             author: ebookCheckout.flatMap { formattedAuthors($0.author) }
         )
+        ebookEntryView.setSavedIsbns(SavedValues.ebookIsbns.all()) { [weak self] isbn in
+            SavedValues.ebookIsbns.remove(isbn)
+            self?.configureEbookEntry()
+        }
         ebookEntryView.setSections([
             BookEntryView.Section(title: "CHECKOUT", buttons: [
                 BookEntryView.ButtonModel(title: "Read (SDK reader)") { [weak self] in
@@ -105,6 +142,10 @@ final class CheckoutsViewController: UIViewController {
             title: audiobookCheckout?.title,
             author: audiobookCheckout.flatMap { formattedAuthors($0.author) }
         )
+        audiobookEntryView.setSavedIsbns(SavedValues.audiobookIsbns.all()) { [weak self] isbn in
+            SavedValues.audiobookIsbns.remove(isbn)
+            self?.configureAudiobookEntry()
+        }
         audiobookEntryView.setSections([
             BookEntryView.Section(title: "CHECKOUT", buttons: [
                 BookEntryView.ButtonModel(title: "Play (SDK player)") { [weak self] in
@@ -156,7 +197,7 @@ final class CheckoutsViewController: UIViewController {
 
     private func observeCheckouts() {
         do {
-            try WeDoBooksFacade.shared
+            checkoutsCancellable = try WeDoBooksFacade.shared
                 .bookOperations
                 .observeCheckouts()
                 .receive(on: DispatchQueue.main)
@@ -167,22 +208,19 @@ final class CheckoutsViewController: UIViewController {
                 }, receiveValue: { [weak self] checkouts in
                     self?.applyCheckouts(checkouts)
                 })
-                .store(in: &cancellables)
         } catch {
             print("observeCheckouts threw: \(error)")
         }
     }
 
     private func applyCheckouts(_ checkouts: [Checkout]) {
-        if let ebook = checkouts.first(where: { $0.materialId == ebookEntryView.isbn && $0.type == .ebook }) {
-            ebookCheckout = ebook
-            configureEbookEntry()
-        }
+        self.checkouts = checkouts
+        configureEbookEntry()
+        configureAudiobookEntry()
+    }
 
-        if let audiobook = checkouts.first(where: { $0.materialId == audiobookEntryView.isbn && $0.type == .audiobook }) {
-            audiobookCheckout = audiobook
-            configureAudiobookEntry()
-        }
+    private func checkout(isbn: String, type: MaterialType) -> Checkout? {
+        checkouts.first { $0.materialId == isbn && $0.type == type }
     }
 
     private func formattedAuthors(_ authors: [String]) -> String? {
@@ -191,13 +229,18 @@ final class CheckoutsViewController: UIViewController {
         return nonEmpty.joined(separator: ", ")
     }
 
-    private func refreshInitialDownloadStatuses() {
-        if let isDownloaded = try? WeDoBooksFacade.shared.storageOperations.isBookDownloaded(isbn: ebookEntryView.isbn) {
-            ebookDownloadState = isDownloaded ? .downloaded : .notDownloaded
+    private func refreshDownloadStates() {
+        ebookDownloadState = downloadState(isbn: ebookEntryView.isbn)
+        audiobookDownloadState = downloadState(isbn: audiobookEntryView.isbn)
+    }
+
+    /// Prefers the live status for `isbn`, falling back to what's on disk for books without one.
+    private func downloadState(isbn: String) -> DownloadUIState {
+        if let status = downloadStatuses[isbn] {
+            return mapDownloadUIState(status)
         }
-        if let isDownloaded = try? WeDoBooksFacade.shared.storageOperations.isBookDownloaded(isbn: audiobookEntryView.isbn) {
-            audiobookDownloadState = isDownloaded ? .downloaded : .notDownloaded
-        }
+        let isDownloaded = (try? WeDoBooksFacade.shared.storageOperations.isBookDownloaded(isbn: isbn)) ?? false
+        return isDownloaded ? .downloaded : .notDownloaded
     }
 
     private func observeDownloadStatuses() {
@@ -212,8 +255,12 @@ final class CheckoutsViewController: UIViewController {
     }
 
     private func applyDownloadStatuses(_ statuses: [String: StorageDownloadStatus]) {
-        let newEbook = mapDownloadUIState(statuses[ebookEntryView.isbn])
-        let newAudiobook = mapDownloadUIState(statuses[audiobookEntryView.isbn])
+        downloadStatuses = statuses
+        presentDiskSpaceErrorIfNeeded(isbn: ebookEntryView.isbn, status: statuses[ebookEntryView.isbn])
+        presentDiskSpaceErrorIfNeeded(isbn: audiobookEntryView.isbn, status: statuses[audiobookEntryView.isbn])
+
+        let newEbook = downloadState(isbn: ebookEntryView.isbn)
+        let newAudiobook = downloadState(isbn: audiobookEntryView.isbn)
 
         if newEbook != ebookDownloadState {
             ebookDownloadState = newEbook
@@ -223,6 +270,24 @@ final class CheckoutsViewController: UIViewController {
             audiobookDownloadState = newAudiobook
             configureAudiobookEntry()
         }
+    }
+
+    private func presentDiskSpaceErrorIfNeeded(isbn: String, status: StorageDownloadStatus?) {
+        let previous = lastDownloadStatuses[isbn]
+        lastDownloadStatuses[isbn] = status
+
+        guard status == .failure(reason: .missingDiskSpace),
+              previous != .failure(reason: .missingDiskSpace),
+              presentingHost().presentedViewController == nil else { return }
+
+        print("Download of \(isbn) failed: out of storage")
+        let alert = UIAlertController(
+            title: "Not enough storage",
+            message: "The download couldn’t finish because this device is out of storage. Free up space and try again.",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        presentingHost().present(alert, animated: true)
     }
 
     private func mapDownloadUIState(_ status: StorageDownloadStatus?) -> DownloadUIState {
@@ -250,6 +315,15 @@ final class CheckoutsViewController: UIViewController {
         }
     }
 
+    /// Forgets the signed-in user's checkouts so the next user doesn't see (or open) them.
+    func clearCheckouts() {
+        checkoutsCancellable = nil
+        checkouts = []
+        guard isViewLoaded else { return }
+        configureEbookEntry()
+        configureAudiobookEntry()
+    }
+
     func reenableActions() {
         ebookEntryView.setActionsEnabled(true)
         audiobookEntryView.setActionsEnabled(true)
@@ -269,6 +343,7 @@ final class CheckoutsViewController: UIViewController {
                 try await WeDoBooksFacade.shared
                     .bookOperations
                     .openCheckout(checkout, presentedBy: presentingHost())
+                remember(isbn: checkout.materialId, kind: .ebook)
             } catch {
                 print("openCheckout (ebook) failed: \(error)")
                 ebookEntryView.setActionsEnabled(true)
@@ -309,10 +384,12 @@ final class CheckoutsViewController: UIViewController {
     private func openEbookSample() {
         ebookEntryView.setActionsEnabled(false)
         Task { @MainActor in
+            let isbn = ebookEntryView.isbn
             do {
                 try await WeDoBooksFacade.shared
                     .bookOperations
-                    .openSample(for: ebookEntryView.isbn, type: .ebook, presentedBy: presentingHost())
+                    .openSample(for: isbn, type: .ebook, presentedBy: presentingHost())
+                remember(isbn: isbn, kind: .ebook)
             } catch {
                 print("openSample (.ebook) failed: \(error)")
                 ebookEntryView.setActionsEnabled(true)
@@ -333,11 +410,17 @@ final class CheckoutsViewController: UIViewController {
                 try await WeDoBooksFacade.shared
                     .bookOperations
                     .openCheckout(checkout, presentedBy: presentingHost(), customCover: .url(coverUrl))
+                remember(isbn: checkout.materialId, kind: .audiobook)
             } catch {
                 print("openCheckout (audiobook) failed: \(error)")
                 audiobookEntryView.setActionsEnabled(true)
             }
         }
+    }
+
+    @objc
+    private func showCurrentCheckouts() {
+        navigationController?.pushViewController(CurrentCheckoutsViewController(), animated: true)
     }
 
     private func openHeadless() {
@@ -378,10 +461,12 @@ final class CheckoutsViewController: UIViewController {
     private func openAudiobookSample() {
         audiobookEntryView.setActionsEnabled(false)
         Task { @MainActor in
+            let isbn = audiobookEntryView.isbn
             do {
                 try await WeDoBooksFacade.shared
                     .bookOperations
-                    .openSample(for: audiobookEntryView.isbn, type: .audiobook, presentedBy: presentingHost())
+                    .openSample(for: isbn, type: .audiobook, presentedBy: presentingHost())
+                remember(isbn: isbn, kind: .audiobook)
             } catch {
                 print("openSample (.audiobook) failed: \(error)")
                 audiobookEntryView.setActionsEnabled(true)
@@ -391,21 +476,28 @@ final class CheckoutsViewController: UIViewController {
 
     @MainActor
     private func ensureCheckout(isbn: String, kind: MaterialType) async -> Checkout? {
-        let cached = (kind == .ebook) ? ebookCheckout : audiobookCheckout
-        if let cached, cached.materialId == isbn { return cached }
+        if let existing = checkout(isbn: isbn, type: kind) { return existing }
 
+        // The new checkout also arrives through `observeCheckouts()`, which updates the header.
         let result = await WeDoBooksFacade.shared.bookOperations.checkoutBook(with: isbn)
         switch result {
         case .success(let checkout):
-            if kind == .ebook {
-                ebookCheckout = checkout
-            } else {
-                audiobookCheckout = checkout
-            }
+            remember(isbn: isbn, kind: kind)
             return checkout
         case .failure(let error):
             print("checkoutBook for \(isbn) failed: \(error)")
             return nil
+        }
+    }
+
+    /// Saves an ISBN that was checked out or opened, so its field offers it next time.
+    private func remember(isbn: String, kind: MaterialType) {
+        if kind == .ebook {
+            SavedValues.ebookIsbns.save(isbn)
+            configureEbookEntry()
+        } else {
+            SavedValues.audiobookIsbns.save(isbn)
+            configureAudiobookEntry()
         }
     }
 

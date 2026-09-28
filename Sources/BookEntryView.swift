@@ -61,6 +61,17 @@ final class BookEntryView: UIView {
         return result
     }()
 
+    // Pull-down of saved ISBNs, shown inside the field while there are any.
+    private let savedIsbnsButton: UIButton = {
+        var configuration = UIButton.Configuration.plain()
+        configuration.image = UIImage(systemName: "clock.arrow.circlepath")
+        configuration.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 8, bottom: 0, trailing: 8)
+        let result = UIButton(configuration: configuration)
+        result.showsMenuAsPrimaryAction = true
+        result.accessibilityLabel = "Saved ISBNs"
+        return result
+    }()
+
     private let titleLabel: UILabel = {
         let result = UILabel()
         result.font = .systemFont(ofSize: 18, weight: .semibold)
@@ -99,15 +110,18 @@ final class BookEntryView: UIView {
     private var actionButtons: [UIButton] = []
     private var buttonActions: [UIButton: () -> Void] = [:]
 
-    /// The ISBN currently typed into this entry's field.
+    var onIsbnChange: (() -> Void)?
+
     var isbn: String {
-        isbnField.text ?? ""
+        (isbnField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupViewHierarchy()
         isbnField.delegate = self
+        isbnField.addTarget(self, action: #selector(isbnFieldChanged), for: .editingChanged)
+        isbnField.rightView = savedIsbnsButton
         Theme.applyCardStyle(to: self)
     }
 
@@ -135,6 +149,30 @@ final class BookEntryView: UIView {
         titleLabel.isHidden = (title?.isEmpty ?? true)
         authorLabel.text = author ?? " "
         authorLabel.isHidden = (author?.isEmpty ?? true)
+    }
+
+    func setSavedIsbns(_ isbns: [String], onRemove: @escaping (String) -> Void) {
+        isbnField.rightViewMode = isbns.isEmpty ? .never : .always
+        guard !isbns.isEmpty else {
+            savedIsbnsButton.menu = nil
+            return
+        }
+
+        let picks = isbns.map { isbn in
+            UIAction(title: isbn, state: isbn == self.isbn ? .on : .off) { [weak self] _ in
+                self?.isbnField.text = isbn
+                self?.onIsbnChange?()
+            }
+        }
+        let removals = isbns.map { isbn in
+            UIAction(title: isbn, attributes: .destructive) { _ in
+                onRemove(isbn)
+            }
+        }
+        savedIsbnsButton.menu = UIMenu(children: [
+            UIMenu(options: .displayInline, children: picks),
+            UIMenu(title: "Remove", image: UIImage(systemName: "trash"), children: removals),
+        ])
     }
 
     func setSections(_ sections: [Section]) {
@@ -176,6 +214,11 @@ final class BookEntryView: UIView {
         button.translatesAutoresizingMaskIntoConstraints = false
         button.heightAnchor.constraint(equalToConstant: 50).isActive = true
         return button
+    }
+
+    @objc
+    private func isbnFieldChanged() {
+        onIsbnChange?()
     }
 
     @objc
