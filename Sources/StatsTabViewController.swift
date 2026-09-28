@@ -12,10 +12,10 @@ import WeDoBooksSDK
 
 extension StatEntry {
     static let empty = StatEntry(
-        audioMinutes: 0,
+        audiobookMinutes: 0,
         ebookMinutes: 0,
         minutesRead: 0,
-        audioSeconds: 0,
+        audiobookSeconds: 0,
         ebookSeconds: 0,
         secondsRead: 0,
         wordsRead: 0
@@ -26,7 +26,7 @@ final class StatsTabViewController: UIViewController {
     private struct PageModel {
         let title: String
         let subtitle: String
-        let entry: StatEntry
+        let entries: AnyPublisher<StatEntry, Never>
     }
 
     private static let dateKeyFormatter: DateFormatter = {
@@ -258,19 +258,11 @@ final class StatsTabViewController: UIViewController {
     private func loadPages() {
         cancellables = []
 
-        let year = Calendar.current.component(.year, from: Date())
-        let yearString = String(year)
-
-        let yearPublisher = WeDoBooksFacade.shared.userOperations
-            .totalStats(year: yearString)
-            .prefix(1)
-
         let checkoutsPublisher: AnyPublisher<[Checkout], Never>
         do {
             checkoutsPublisher = try WeDoBooksFacade.shared
                 .bookOperations
                 .observeCheckouts()
-                .prefix(1)
                 .replaceError(with: [])
                 .eraseToAnyPublisher()
         } catch {
@@ -278,77 +270,57 @@ final class StatsTabViewController: UIViewController {
             checkoutsPublisher = Just([]).eraseToAnyPublisher()
         }
 
-        Publishers.CombineLatest(yearPublisher, checkoutsPublisher)
+        checkoutsPublisher
+            .map { $0.sorted { $0.title < $1.title } }
+            .removeDuplicates(by: Self.samePages)
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] yearStats, checkouts in
-                self?.assemblePages(yearStats: yearStats, yearString: yearString, checkouts: checkouts)
+            .sink { [weak self] checkouts in
+                self?.assemblePages(checkouts: checkouts)
             }
             .store(in: &cancellables)
     }
 
-    private func assemblePages(yearStats: [String: StatEntry], yearString: String, checkouts: [Checkout]) {
-        var models: [PageModel] = []
+    private static func samePages(_ lhs: [Checkout], _ rhs: [Checkout]) -> Bool {
+        let lhsKeys: [String] = lhs.map { "\($0.id)|\($0.title)" }
+        let rhsKeys: [String] = rhs.map { "\($0.id)|\($0.title)" }
+        return lhsKeys == rhsKeys
+    }
+
+    private func assemblePages(checkouts: [Checkout]) {
+        let yearString = String(Calendar.current.component(.year, from: Date()))
         let dateKey = selectedDate.map { Self.dateKeyFormatter.string(from: $0) }
         let subtitle = dateKey.map { "on \($0)" } ?? "all time"
 
-        let yearEntry: StatEntry
-        if let dateKey {
-            yearEntry = yearStats[dateKey] ?? .empty
-        } else {
-            yearEntry = sumStats(yearStats)
-        }
-        models.append(PageModel(
+        let yearPage = PageModel(
             title: "Year — \(yearString)",
             subtitle: subtitle,
-            entry: yearEntry
-        ))
+            entries: entries(WeDoBooksFacade.shared.userOperations.totalStats(year: yearString), dateKey: dateKey)
+        )
+        let checkoutPages = checkouts.map { checkout in
+            PageModel(
+                title: checkout.title,
+                subtitle: subtitle,
+                entries: entries(WeDoBooksFacade.shared.userOperations.totalStats(checkoutId: checkout.id), dateKey: dateKey)
+            )
+        }
 
-        let group = DispatchGroup()
-        var perCheckoutEntries: [(Checkout, StatEntry)] = []
-        let queue = DispatchQueue(label: "stats.assemble")
+        pages = [yearPage] + checkoutPages
+        renderPages()
+    }
 
-        let sortedCheckouts = checkouts.sorted { $0.title < $1.title }
-        for checkout in sortedCheckouts {
-            group.enter()
-            var local: AnyCancellable?
-            local = WeDoBooksFacade.shared.userOperations
-                .totalStats(checkoutId: checkout.id)
-                .prefix(1)
-                .receive(on: DispatchQueue.main)
-                .sink { [weak self] stats in
-                    guard let self else { group.leave(); return }
-                    let entry: StatEntry
-                    if let dateKey {
-                        entry = stats[dateKey] ?? .empty
-                    } else {
-                        entry = sumStats(stats)
-                    }
-                    queue.sync {
-                        perCheckoutEntries.append((checkout, entry))
-                    }
-                    group.leave()
-                    local?.cancel()
+    private func entries(_ stats: AnyPublisher<[String: StatEntry], Never>, dateKey: String?) -> AnyPublisher<StatEntry, Never> {
+        stats
+            .map { [weak self] stats in
+                if let dateKey {
+                    return stats[dateKey] ?? .empty
                 }
-            if let local {
-                cancellables.insert(local)
+                return self?.sumStats(stats) ?? .empty
             }
-        }
-
-        group.notify(queue: .main) { [weak self] in
-            guard let self else { return }
-            for (checkout, entry) in perCheckoutEntries {
-                models.append(PageModel(
-                    title: checkout.title,
-                    subtitle: subtitle,
-                    entry: entry
-                ))
-            }
-            self.pages = models
-            self.renderPages()
-        }
+            .eraseToAnyPublisher()
     }
 
     private func renderPages() {
+        let previousPage = pageControl.currentPage
         pagesStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
         for model in pages {
@@ -358,7 +330,7 @@ final class StatsTabViewController: UIViewController {
 
             let card = StatsCardView()
             card.translatesAutoresizingMaskIntoConstraints = false
-            card.configure(title: model.title, subtitle: model.subtitle, entry: model.entry)
+            card.bind(title: model.title, subtitle: model.subtitle, entries: model.entries)
             pageView.addSubview(card)
 
             NSLayoutConstraint.activate([
@@ -372,12 +344,16 @@ final class StatsTabViewController: UIViewController {
             pageView.widthAnchor.constraint(equalTo: pagesScrollView.frameLayoutGuide.widthAnchor).isActive = true
         }
 
+        let targetPage = max(0, min(previousPage, pages.count - 1))
         pageControl.numberOfPages = pages.count
-        pageControl.currentPage = 0
+        pageControl.currentPage = targetPage
         pageControl.isHidden = pages.count <= 1
         emptyStateLabel.isHidden = !pages.isEmpty
         pagesScrollView.isHidden = pages.isEmpty
-        pagesScrollView.setContentOffset(.zero, animated: false)
+
+        pagesScrollView.layoutIfNeeded()
+        let offsetX = CGFloat(targetPage) * pagesScrollView.bounds.width
+        pagesScrollView.setContentOffset(CGPoint(x: offsetX, y: 0), animated: false)
     }
 
     private func loadHistory() {
@@ -508,13 +484,15 @@ final class StatsTabViewController: UIViewController {
         stats.reduce(StatEntry.empty) { partial, kv in
             let entry = kv.value
             return StatEntry(
-                audioMinutes: partial.audioMinutes + entry.audioMinutes,
+                audiobookMinutes: partial.audiobookMinutes + entry.audiobookMinutes,
                 ebookMinutes: partial.ebookMinutes + entry.ebookMinutes,
                 minutesRead: partial.minutesRead + entry.minutesRead,
-                audioSeconds: partial.audioSeconds + entry.audioSeconds,
+                audiobookSeconds: partial.audiobookSeconds + entry.audiobookSeconds,
                 ebookSeconds: partial.ebookSeconds + entry.ebookSeconds,
                 secondsRead: partial.secondsRead + entry.secondsRead,
-                wordsRead: partial.wordsRead + entry.wordsRead
+                wordsRead: partial.wordsRead + entry.wordsRead,
+                podcastMinutes: partial.podcastMinutes + entry.podcastMinutes,
+                podcastSeconds: partial.podcastSeconds + entry.podcastSeconds
             )
         }
     }

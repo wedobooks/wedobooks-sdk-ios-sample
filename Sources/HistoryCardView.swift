@@ -142,7 +142,17 @@ final class HistoryCardView: UIView {
     }
 
     private static func typeIcon(for type: MaterialType) -> UIImage? {
-        let symbolName = type == .audiobook ? "headphones" : "book"
+        let symbolName: String
+        switch type {
+        case .audiobook:
+            symbolName = "headphones"
+        case .podcast:
+            symbolName = "mic"
+        case .ebook:
+            symbolName = "book"
+        @unknown default:
+            symbolName = "book"
+        }
         let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .regular)
         return UIImage(systemName: symbolName, withConfiguration: config)
     }

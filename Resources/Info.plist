@@ -6,6 +6,8 @@
 	<string>$(CUSTOM_TOKEN_URL)</string>
 	<key>FirebaseAutomaticScreenReportingEnabled</key>
 	<false/>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>READER_KEY</key>
 	<string>$(READER_KEY)</string>
 	<key>READER_SECRET</key>

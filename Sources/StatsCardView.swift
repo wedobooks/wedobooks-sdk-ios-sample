@@ -6,10 +6,13 @@
 //  Copyright © 2026 WeDoBooks A/S. All rights reserved.
 //
 
+import Combine
 import UIKit
 import WeDoBooksSDK
 
 final class StatsCardView: UIView {
+    private var entryCancellable: AnyCancellable?
+
     private let titleLabel: UILabel = {
         let result = UILabel()
         result.font = .systemFont(ofSize: 24, weight: .regular)
@@ -37,6 +40,7 @@ final class StatsCardView: UIView {
     }()
 
     private let audioRow = StatsCardRow()
+    private let podcastRow = StatsCardRow()
     private let ebookRow = StatsCardRow()
     private let totalRow = StatsCardRow()
     private let wordsRow = StatsCardRow()
@@ -61,7 +65,7 @@ final class StatsCardView: UIView {
         addSubview(headerStack)
         addSubview(rowsStack)
 
-        [audioRow, ebookRow, totalRow, wordsRow].forEach(rowsStack.addArrangedSubview)
+        [audioRow, podcastRow, ebookRow, totalRow, wordsRow].forEach(rowsStack.addArrangedSubview)
 
         NSLayoutConstraint.activate([
             headerStack.topAnchor.constraint(equalTo: topAnchor, constant: 28),
@@ -75,10 +79,20 @@ final class StatsCardView: UIView {
         ])
     }
 
-    func configure(title: String, subtitle: String, entry: StatEntry) {
+    func bind(title: String, subtitle: String, entries: AnyPublisher<StatEntry, Never>) {
         titleLabel.text = title
         subtitleLabel.text = subtitle
-        audioRow.configure(label: "Audio listened", seconds: entry.audioSeconds)
+        show(.empty)
+        entryCancellable = entries
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] entry in
+                self?.show(entry)
+            }
+    }
+
+    private func show(_ entry: StatEntry) {
+        audioRow.configure(label: "Audio listened", seconds: entry.audiobookSeconds)
+        podcastRow.configure(label: "Podcast listened", seconds: entry.podcastSeconds)
         ebookRow.configure(label: "Ebook read", seconds: entry.ebookSeconds)
         totalRow.configure(label: "Total time", seconds: entry.secondsRead)
         wordsRow.configure(label: "Words read", wordsCount: entry.wordsRead)
