@@ -275,6 +275,9 @@ final class ReservationsViewController: UIViewController {
             Self.makeMetaRow("Material", String(describing: reservation.materialType)),
             Self.makeMetaRow("Loan date", dateFormatter.string(from: reservation.loanDate)),
         ]
+        if let position = reservation.queuePosition {
+            rows.append(Self.makeMetaRow("Queue position", "\(position)"))
+        }
         if reservation.wordCount > 0 {
             rows.append(Self.makeMetaRow("Words", "\(reservation.wordCount)"))
         }
