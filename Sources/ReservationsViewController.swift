@@ -67,14 +67,6 @@ final class ReservationsViewController: UIViewController {
         return result
     }()
 
-    private let reserveResultLabel: UILabel = {
-        let result = UILabel()
-        result.font = .systemFont(ofSize: 13)
-        result.textColor = .secondaryLabel
-        result.numberOfLines = 0
-        return result
-    }()
-
     private let reservationsHeader = ReservationsViewController.makeSectionHeader("Reservations (0)")
     private let reservationsContainer = ReservationsViewController.makeContainerStack()
     private let offersHeader = ReservationsViewController.makeSectionHeader("Offers (0)")
@@ -104,7 +96,7 @@ final class ReservationsViewController: UIViewController {
         reserveTitle.font = .systemFont(ofSize: 15, weight: .semibold)
         reserveTitle.textColor = .label
 
-        let reserveCard = makeCard([reserveTitle, isbnField, reserveButton, reserveResultLabel])
+        let reserveCard = makeCard([reserveTitle, isbnField, reserveButton])
 
         contentStack.addArrangedSubview(statusLabel)
         contentStack.addArrangedSubview(reserveCard)
@@ -190,21 +182,64 @@ final class ReservationsViewController: UIViewController {
         guard !isbn.isEmpty else { return }
         view.endEditing(true)
         reserveButton.isEnabled = false
-        reserveResultLabel.text = "Reserving…"
 
         Task { @MainActor in
+            defer { reserveButton.isEnabled = true }
             let result = await WeDoBooksFacade.shared.reservationOperations.reserveBook(isbn: isbn)
             switch result {
             case .success(let response):
-                var text = String(describing: response.canLoan)
-                if let message = response.message, !message.isEmpty {
-                    text += " · \(message)"
+                switch response.canLoan {
+                case .reservable, .wishable:
+                    break
+                default:
+                    print("reserveBook for \(isbn) not reserved: \(response.canLoan) \(response.message ?? "")")
+                    presentReserveError(Self.message(for: response.canLoan, backendMessage: response.message), isbn: isbn)
+                    break
                 }
-                reserveResultLabel.text = text
             case .failure(let error):
-                reserveResultLabel.text = "Error: \(error)"
+                print("reserveBook for \(isbn) failed: \(error)")
+                presentReserveError(Self.message(for: error), isbn: isbn)
             }
-            reserveButton.isEnabled = true
+        }
+    }
+
+    private func presentReserveError(_ message: String, isbn: String) {
+        guard presentedViewController == nil else { return }
+        let alert = UIAlertController(title: "Couldn’t reserve \(isbn)", message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
+    }
+
+    private static func message(for canLoan: CanLoanResult, backendMessage: String?) -> String {
+        let text: String
+        switch canLoan {
+        case .loanable:
+            text = "This book can’t be reserved, but you can borrow it."
+        case .unavailable:
+            text = "This book is unavailable."
+        case .monthlyLimitExceeded:
+            text = "You’ve reached your monthly loan limit."
+        case .concurrentLimitExceeded:
+            text = "You’ve reached the limit of loans you can have at once."
+        case .noValidCredentials:
+            text = "You don’t have valid credentials for the library that owns this book."
+        case .lendingBlocked:
+            text = "Lending is blocked for your account or library."
+        default:
+            text = "The book couldn’t be reserved (\(canLoan))."
+        }
+        guard let backendMessage, !backendMessage.isEmpty else { return text }
+        return "\(text)\n\n\(backendMessage)"
+    }
+
+    private static func message(for error: ReservationError) -> String {
+        switch error {
+        case .unsupportedInStreamingMode:
+            return "Reservations are only available in library mode."
+        case .noUserSignedIn:
+            return "Sign in to reserve books."
+        case .operationFailed:
+            return "Something went wrong. Try again."
         }
     }
 
@@ -275,6 +310,9 @@ final class ReservationsViewController: UIViewController {
             Self.makeMetaRow("Material", String(describing: reservation.materialType)),
             Self.makeMetaRow("Loan date", dateFormatter.string(from: reservation.loanDate)),
         ]
+        if let position = reservation.queuePosition {
+            rows.append(Self.makeMetaRow("Queue position", "\(position)"))
+        }
         if reservation.wordCount > 0 {
             rows.append(Self.makeMetaRow("Words", "\(reservation.wordCount)"))
         }

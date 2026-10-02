@@ -29,6 +29,7 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
 
     private var cancellables: Set<AnyCancellable> = []
     private var audiobookCheckout: Checkout?
+    private var loadControlsEnabled = true
 
     private let customPlayerProgressEnabled = SampleProgressConfig.customPlayerProgress
 
@@ -278,6 +279,7 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
     }
 
     private func setupControlActions() {
+        isbnField.addTarget(self, action: #selector(isbnFieldChanged), for: .editingChanged)
         loadBookButton.addTarget(self, action: #selector(loadBookTapped), for: .touchUpInside)
         loadSampleButton.addTarget(self, action: #selector(loadSampleTapped), for: .touchUpInside)
         playButton.addTarget(self, action: #selector(playTapped), for: .touchUpInside)
@@ -289,6 +291,11 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
         removeDownloadButton.addTarget(self, action: #selector(removeDownloadTapped), for: .touchUpInside)
         downloadStatusButton.addTarget(self, action: #selector(downloadStatusTapped), for: .touchUpInside)
         getChaptersButton.addTarget(self, action: #selector(getChaptersTapped), for: .touchUpInside)
+    }
+
+    @objc
+    private func isbnFieldChanged() {
+        setLoadControlsEnabled(loadControlsEnabled)
     }
 
     @objc
@@ -627,8 +634,10 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
     }
 
     private func setLoadControlsEnabled(_ isEnabled: Bool) {
-        loadBookButton.isEnabled = isEnabled
-        loadSampleButton.isEnabled = isEnabled
+        loadControlsEnabled = isEnabled
+        let hasIsbn = !(isbnField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        loadBookButton.isEnabled = isEnabled && hasIsbn
+        loadSampleButton.isEnabled = isEnabled && hasIsbn
         // The start-position field only applies with custom player progress enabled; when it's
         // disabled the SDK restores its saved bookmark and rejects a supplied position.
         startPositionField.isEnabled = isEnabled && customPlayerProgressEnabled

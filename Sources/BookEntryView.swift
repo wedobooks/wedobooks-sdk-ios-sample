@@ -12,11 +12,13 @@ final class BookEntryView: UIView {
     struct ButtonModel {
         let title: String
         let isEnabled: Bool
+        let requiresIsbn: Bool
         let action: () -> Void
 
-        init(title: String, isEnabled: Bool = true, action: @escaping () -> Void) {
+        init(title: String, isEnabled: Bool = true, requiresIsbn: Bool = true, action: @escaping () -> Void) {
             self.title = title
             self.isEnabled = isEnabled
+            self.requiresIsbn = requiresIsbn
             self.action = action
         }
     }
@@ -108,7 +110,7 @@ final class BookEntryView: UIView {
     }()
 
     private var actionButtons: [UIButton] = []
-    private var buttonActions: [UIButton: () -> Void] = [:]
+    private var buttonModels: [UIButton: ButtonModel] = [:]
 
     var onIsbnChange: (() -> Void)?
 
@@ -178,7 +180,7 @@ final class BookEntryView: UIView {
     func setSections(_ sections: [Section]) {
         sectionsStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
         actionButtons.removeAll()
-        buttonActions.removeAll()
+        buttonModels.removeAll()
 
         for section in sections {
             let container = UIStackView()
@@ -194,8 +196,8 @@ final class BookEntryView: UIView {
 
             for model in section.buttons {
                 let button = makeActionButton(title: model.title)
-                button.isEnabled = model.isEnabled
-                buttonActions[button] = model.action
+                button.isEnabled = canEnable(model)
+                buttonModels[button] = model
                 button.addTarget(self, action: #selector(actionButtonTapped(_:)), for: .touchUpInside)
                 actionButtons.append(button)
                 container.addArrangedSubview(button)
@@ -206,7 +208,13 @@ final class BookEntryView: UIView {
     }
 
     func setActionsEnabled(_ isEnabled: Bool) {
-        actionButtons.forEach { $0.isEnabled = isEnabled }
+        for button in actionButtons {
+            button.isEnabled = isEnabled && buttonModels[button].map(canEnable) ?? false
+        }
+    }
+
+    private func canEnable(_ model: ButtonModel) -> Bool {
+        model.isEnabled && (!model.requiresIsbn || !isbn.isEmpty)
     }
 
     private func makeActionButton(title: String) -> UIButton {
@@ -223,13 +231,21 @@ final class BookEntryView: UIView {
 
     @objc
     private func actionButtonTapped(_ sender: UIButton) {
-        buttonActions[sender]?()
+        guard let model = buttonModels[sender], canEnable(model) else { return }
+        model.action()
     }
 }
 
 extension BookEntryView: UITextFieldDelegate {
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         textField.resignFirstResponder()
+        return true
+    }
+
+    func textFieldShouldClear(_ textField: UITextField) -> Bool {
+        DispatchQueue.main.async { [weak self] in
+            self?.onIsbnChange?()
+        }
         return true
     }
 }

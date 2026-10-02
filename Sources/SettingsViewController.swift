@@ -48,7 +48,20 @@ final class SettingsViewController: UIViewController {
         return result
     }()
 
+    private let supportIdLabel: UILabel = {
+        let result = UILabel()
+        result.font = .systemFont(ofSize: 17, weight: .regular)
+        result.textColor = .label
+        result.numberOfLines = 0
+        return result
+    }()
+
     private var actionsByButton: [UIButton: () -> Void] = [:]
+    private var supportIdUserId: String?
+
+    private var isLibraryMode: Bool {
+        currentEnv.mode == .library
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -56,6 +69,11 @@ final class SettingsViewController: UIViewController {
 
         setupViewHierarchy()
         renderSections()
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        loadSupportId()
     }
 
     private func setupViewHierarchy() {
@@ -116,14 +134,20 @@ final class SettingsViewController: UIViewController {
             ]),
         ]
 
+        if isLibraryMode {
+            let supportIdSection = makeSectionStack(title: "SUPPORT ID")
+            supportIdSection.addArrangedSubview(supportIdLabel)
+            contentStack.addArrangedSubview(supportIdSection)
+        }
+
         for section in sections {
             contentStack.addArrangedSubview(makeSectionView(section: section))
         }
     }
 
-    private func makeSectionView(section: SectionModel) -> UIView {
+    private func makeSectionStack(title: String) -> UIStackView {
         let header = UILabel()
-        header.text = section.title
+        header.text = title
         header.font = .systemFont(ofSize: 13, weight: .semibold)
         header.textColor = .secondaryLabel
 
@@ -132,6 +156,11 @@ final class SettingsViewController: UIViewController {
         stack.spacing = 12
         stack.alignment = .fill
         stack.addArrangedSubview(header)
+        return stack
+    }
+
+    private func makeSectionView(section: SectionModel) -> UIView {
+        let stack = makeSectionStack(title: section.title)
 
         for buttonModel in section.buttons {
             let button = makeButton(model: buttonModel)
@@ -158,6 +187,42 @@ final class SettingsViewController: UIViewController {
     @objc
     private func buttonTapped(_ sender: UIButton) {
         actionsByButton[sender]?()
+    }
+
+    // MARK: - Support ID
+
+    private func loadSupportId() {
+        let userId = WeDoBooksFacade.shared.userOperations.currentUserId
+        guard isLibraryMode, userId != supportIdUserId else { return }
+        supportIdLabel.text = "Loading…"
+
+        Task.detached { [weak self] in
+            let result = await WeDoBooksFacade.shared.userOperations.getSupportId()
+            await self?.showSupportId(result, for: userId)
+        }
+    }
+
+    private func showSupportId(_ result: Result<String, SupportIdError>, for userId: String?) {
+        guard WeDoBooksFacade.shared.userOperations.currentUserId == userId else { return }
+        switch result {
+        case .success(let supportId):
+            supportIdUserId = userId
+            supportIdLabel.text = supportId
+        case .failure(let error):
+            print("userOperations.getSupportId failed: \(error)")
+            supportIdLabel.text = Self.message(for: error)
+        }
+    }
+
+    private static func message(for error: SupportIdError) -> String {
+        switch error {
+        case .noUserSignedIn:
+            return "Sign in to see the support ID"
+        case .userNotReady:
+            return "Not ready yet, reopen Settings to retry"
+        default:
+            return "Couldn't load the support ID"
+        }
     }
 
     // MARK: - Actions
