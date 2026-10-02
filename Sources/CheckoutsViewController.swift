@@ -151,7 +151,7 @@ final class CheckoutsViewController: UIViewController {
                 BookEntryView.ButtonModel(title: "Play (SDK player)") { [weak self] in
                     self?.openAudiobook()
                 },
-                BookEntryView.ButtonModel(title: "Play (headless · custom UI)") { [weak self] in
+                BookEntryView.ButtonModel(title: "Play (headless · custom UI)", requiresIsbn: false) { [weak self] in
                     self?.openHeadless()
                 },
                 downloadButton(for: audiobookDownloadState, isEbook: false),
@@ -486,7 +486,32 @@ final class CheckoutsViewController: UIViewController {
             return checkout
         case .failure(let error):
             print("checkoutBook for \(isbn) failed: \(error)")
+            presentCheckoutError(error, isbn: isbn)
             return nil
+        }
+    }
+
+    private func presentCheckoutError(_ error: CheckoutError, isbn: String) {
+        guard presentingHost().presentedViewController == nil else { return }
+        let alert = UIAlertController(
+            title: "Couldn’t check out \(isbn)",
+            message: Self.message(for: error),
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        presentingHost().present(alert, animated: true)
+    }
+
+    private static func message(for error: CheckoutError) -> String {
+        switch error {
+        case .noUserSignedIn:
+            return "Sign in to check out books."
+        case .rejected(let quota, let reason):
+            return "The loan was rejected (\(reason), quota \(quota))."
+        case .unknown:
+            return "This book isn’t available for loan right now. It may be possible to reserve it or add it to your wish list."
+        case .underlyingError:
+            return "Something went wrong. Try again."
         }
     }
 

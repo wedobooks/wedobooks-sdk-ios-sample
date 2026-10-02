@@ -191,7 +191,6 @@ final class SettingsViewController: UIViewController {
 
     // MARK: - Support ID
 
-    /// The ID never changes for a user, so it is only re-fetched after a failure or when another user signs in.
     private func loadSupportId() {
         let userId = WeDoBooksFacade.shared.userOperations.currentUserId
         guard isLibraryMode, userId != supportIdUserId else { return }
