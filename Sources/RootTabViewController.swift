@@ -204,7 +204,7 @@ final class RootTabViewController: UIViewController {
             .events
             .bookInfoTapped
             .sink { isbn in
-                print("Book info tapped for \(isbn)")
+                EventBanner.show("Event bookInfoTapped: \(isbn)")
             }
             .store(in: &cancellables)
 
@@ -212,7 +212,7 @@ final class RootTabViewController: UIViewController {
             .events
             .finishBookTapped
             .sink { isbn in
-                print("Finish book tapped for \(isbn)")
+                EventBanner.show("Event finishBookTapped: \(isbn)")
             }
             .store(in: &cancellables)
 
@@ -234,6 +234,7 @@ final class RootTabViewController: UIViewController {
                 switch event {
                 case .sessionTakenOver(let activeDevice):
                     print("Session interrupted: taken over by device \(activeDevice)")
+                    self?.presentSessionTakenOverAlert()
                 case .accessExpired:
                     print("Session interrupted: access expired")
                 @unknown default:
@@ -241,6 +242,33 @@ final class RootTabViewController: UIViewController {
                 }
             }
             .store(in: &cancellables)
+    }
+
+    private func presentSessionTakenOverAlert() {
+        let alert = UIAlertController(
+            title: "Device taken over",
+            message: "This device has been taken over by another device using your account, so reading and listening have stopped on this one.",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        presentWhenReaderClosed(alert)
+    }
+
+    /// Waits for a presented reader to close first, so the alert isn't dismissed along with it.
+    private func presentWhenReaderClosed(_ alert: UIAlertController, attemptsLeft: Int = 10) {
+        let host = navigationController ?? self
+        guard host.presentedViewController != nil, attemptsLeft > 0 else {
+            var top: UIViewController = host
+            while let next = top.presentedViewController, !next.isBeingDismissed {
+                top = next
+            }
+            guard !(top is UIAlertController) else { return }
+            top.present(alert, animated: true)
+            return
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            self?.presentWhenReaderClosed(alert, attemptsLeft: attemptsLeft - 1)
+        }
     }
 
     private func observeEasyAccess() {

@@ -29,8 +29,6 @@ final class CheckoutsViewController: UIViewController {
     }
     private var ebookDownloadState: DownloadUIState = .notDownloaded
     private var audiobookDownloadState: DownloadUIState = .notDownloaded
-    // Per ISBN, so the out-of-storage alert shows once per failure rather than on every emission.
-    private var lastDownloadStatuses: [String: StorageDownloadStatus] = [:]
     // Latest emission from `downloadStatuses`, so an ISBN edit can look up the new book's state.
     private var downloadStatuses: [String: StorageDownloadStatus] = [:]
 
@@ -82,6 +80,7 @@ final class CheckoutsViewController: UIViewController {
             configureAudiobookEntry()
         }
         observeDownloadStatuses()
+        observeStorageErrors()
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -175,13 +174,17 @@ final class CheckoutsViewController: UIViewController {
                 }
             }
         case .downloading(let percent):
-            let title: String
+            let isbn = isEbook ? ebookEntryView.isbn : audiobookEntryView.isbn
+            var title = "Cancel download"
             if let percent {
-                title = "Downloading \(percent)%"
-            } else {
-                title = "Downloading…"
+                title += " · \(percent)%"
             }
-            return BookEntryView.ButtonModel(title: title, isEnabled: false) { }
+            if let status = downloadStatuses[isbn], status.state == .downloading {
+                title += " (\(formattedBytes(downloaded: status.downloadedBytes, total: status.totalBytes)))"
+            }
+            return BookEntryView.ButtonModel(title: title) { [weak self] in
+                self?.cancelDownload(isbn: isbn)
+            }
         case .downloaded:
             return BookEntryView.ButtonModel(title: "Remove download") { [weak self] in
                 if isEbook {
@@ -256,8 +259,6 @@ final class CheckoutsViewController: UIViewController {
 
     private func applyDownloadStatuses(_ statuses: [String: StorageDownloadStatus]) {
         downloadStatuses = statuses
-        presentDiskSpaceErrorIfNeeded(isbn: ebookEntryView.isbn, status: statuses[ebookEntryView.isbn])
-        presentDiskSpaceErrorIfNeeded(isbn: audiobookEntryView.isbn, status: statuses[audiobookEntryView.isbn])
 
         let newEbook = downloadState(isbn: ebookEntryView.isbn)
         let newAudiobook = downloadState(isbn: audiobookEntryView.isbn)
@@ -272,46 +273,67 @@ final class CheckoutsViewController: UIViewController {
         }
     }
 
-    private func presentDiskSpaceErrorIfNeeded(isbn: String, status: StorageDownloadStatus?) {
-        let previous = lastDownloadStatuses[isbn]
-        lastDownloadStatuses[isbn] = status
+    /// `onError` emits once per failed download, so each failure shows one alert.
+    private func observeStorageErrors() {
+        WeDoBooksFacade.shared
+            .storageOperations
+            .onError
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] failure in
+                self?.presentDownloadError(failure)
+            }
+            .store(in: &cancellables)
+    }
 
-        guard status == .failure(reason: .missingDiskSpace),
-              previous != .failure(reason: .missingDiskSpace),
-              presentingHost().presentedViewController == nil else { return }
-
-        print("Download of \(isbn) failed: out of storage")
+    private func presentDownloadError(_ failure: StorageDownloadError) {
+        print("Download of \(failure.isbn) failed: \(failure.error)")
+        guard presentingHost().presentedViewController == nil else { return }
         let alert = UIAlertController(
-            title: "Not enough storage",
-            message: "The download couldn’t finish because this device is out of storage. Free up space and try again.",
+            title: "Couldn’t download \(failure.isbn)",
+            message: Self.message(for: failure.error),
             preferredStyle: .alert
         )
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         presentingHost().present(alert, animated: true)
     }
 
+    private static func message(for error: StorageOperationError) -> String {
+        switch error {
+        case .missingDiskSpace:
+            return "This device is out of storage. Free up space and try again."
+        case .downloadNotAllowedOnCellular:
+            return "Downloads are set to Wi-Fi only. Connect to Wi-Fi, or turn off “Wi-Fi only downloads” in Settings."
+        default:
+            return "Something went wrong (\(error)). Try again."
+        }
+    }
+
     private func mapDownloadUIState(_ status: StorageDownloadStatus?) -> DownloadUIState {
         guard let status else { return .notDownloaded }
-        switch status {
+        switch status.state {
         case .initializing:
             return .downloading(percent: nil)
-        case .downloading(let progress):
-            return .downloading(percent: Int((progress * 100).rounded()))
+        case .downloading:
+            return .downloading(percent: Int((status.progress * 100).rounded()))
         case .downloaded:
             return .downloaded
-        case .notDownloaded, .cancel:
+        case .notDownloaded, .failure, .cancel:
             return .notDownloaded
-        case .failure(let reason):
-            switch reason {
-            case .missingDiskSpace:
-                return .outOfDiskSpace
-            case .other:
-                return .notDownloaded
-            @unknown default:
-                return .notDownloaded
-            }
-        @unknown default:
-            return .notDownloaded
+        }
+    }
+
+    private func formattedBytes(downloaded: Int64, total: Int64?) -> String {
+        let downloadedText = ByteCountFormatter.string(fromByteCount: downloaded, countStyle: .file)
+        guard let total else { return downloadedText }
+        return "\(downloadedText) of \(ByteCountFormatter.string(fromByteCount: total, countStyle: .file))"
+    }
+
+    private func cancelDownload(isbn: String) {
+        do {
+            let didCancel = try WeDoBooksFacade.shared.storageOperations.cancelDownload(isbn: isbn)
+            print("cancelDownload(isbn:) for \(isbn) returned \(didCancel)")
+        } catch {
+            print("cancelDownload(isbn:) for \(isbn) failed: \(error)")
         }
     }
 

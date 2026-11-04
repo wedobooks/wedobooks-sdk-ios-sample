@@ -86,11 +86,21 @@ class MainViewController: UIViewController {
         ]
         WeDoBooksFacade.shared.localization.setCustomLocalizations(localizations)
 
-        WeDoBooksFacade.shared.configuration.showFinishEbookButton = false
-        WeDoBooksFacade.shared.configuration.showFinishAudiobookButton = false
-        WeDoBooksFacade.shared.configuration.showAboutAudioBookButton = false
-        WeDoBooksFacade.shared.configuration.allowEbookDownloadUsingMobileData = true
-        WeDoBooksFacade.shared.configuration.showAudiobookMinimizeButton = true
+        // Not persisted by the SDK, so set on every launch. Settings → READER & PLAYER changes them at runtime.
+        WeDoBooksFacade.shared.configuration.player = PlayerConfiguration(
+            showMinimizeButton: true,
+            onTappedMinimizeButton: { isbn in
+                EventBanner.show("Player onTappedMinimizeButton: \(isbn)")
+            },
+            onTappedFinishBookButton: { isbn in
+                EventBanner.show("Player onTappedFinishBookButton: \(isbn)")
+            }
+        )
+        WeDoBooksFacade.shared.configuration.reader = ReaderConfiguration(
+            onTappedFinishBookButton: { isbn in
+                EventBanner.show("Reader onTappedFinishBookButton: \(isbn)")
+            }
+        )
 
         WeDoBooksFacade.shared.images.icons.set(.close, to: "sf:xmark.app")
         WeDoBooksFacade.shared.images.icons.set(.down, to: "down-alt")
