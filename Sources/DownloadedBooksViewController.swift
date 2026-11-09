@@ -56,6 +56,8 @@ final class DownloadedBooksViewController: UIViewController {
     }()
 
     private var isbns: [String] = []
+    private var sizes: [String: Int64] = [:]
+    private var totalSize: Int64 = 0
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -107,15 +109,19 @@ final class DownloadedBooksViewController: UIViewController {
     }
 
     private func reloadDownloads() {
-        let books = (try? WeDoBooksFacade.shared.storageOperations.getAllDownloadedBooks()) ?? []
+        let storage = WeDoBooksFacade.shared.storageOperations
+        let books = (try? storage.getAllDownloadedBooks()) ?? []
         isbns = books.sorted()
+        let usage = try? storage.storageUsage()
+        sizes = usage?.downloads ?? [:]
+        totalSize = usage?.downloadedBytes ?? 0
         renderRows()
     }
 
     private func renderRows() {
         listStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
         for isbn in isbns {
-            let row = DownloadedBookRowView(isbn: isbn)
+            let row = DownloadedBookRowView(isbn: isbn, size: sizes[isbn])
             row.onTrashTapped = { [weak self] tappedIsbn in
                 self?.removeDownload(isbn: tappedIsbn)
             }
@@ -123,6 +129,9 @@ final class DownloadedBooksViewController: UIViewController {
         }
 
         countLabel.text = countDescription(isbns.count)
+        if totalSize > 0 {
+            countLabel.text? += " · \(ByteCountFormatter.string(fromByteCount: totalSize, countStyle: .file)) on device"
+        }
         emptyStateLabel.isHidden = !isbns.isEmpty
         scrollView.isHidden = isbns.isEmpty
     }
@@ -169,7 +178,6 @@ private final class DownloadedBookRowView: UIView {
 
     private let subtitleLabel: UILabel = {
         let result = UILabel()
-        result.text = "Stored locally"
         result.font = .systemFont(ofSize: 14, weight: .regular)
         result.textColor = .secondaryLabel
         return result
@@ -185,9 +193,10 @@ private final class DownloadedBookRowView: UIView {
         return button
     }()
 
-    init(isbn: String) {
+    init(isbn: String, size: Int64?) {
         self.isbn = isbn
         super.init(frame: .zero)
+        subtitleLabel.text = size.map { ByteCountFormatter.string(fromByteCount: $0, countStyle: .file) } ?? "Stored locally"
         setupViewHierarchy()
         Theme.applyCardStyle(to: self)
         translatesAutoresizingMaskIntoConstraints = false

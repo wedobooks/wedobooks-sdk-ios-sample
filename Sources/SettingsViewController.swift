@@ -16,7 +16,15 @@ protocol SettingsViewControllerDelegate: AnyObject {
 final class SettingsViewController: UIViewController {
     private struct SectionModel {
         let title: String
-        let buttons: [ButtonModel]
+        var buttons: [ButtonModel] = []
+        var toggles: [ToggleModel] = []
+        var footnote: String?
+    }
+
+    private struct ToggleModel {
+        let title: String
+        let isOn: Bool
+        let onChange: (Bool) -> Void
     }
 
     private struct ButtonModel {
@@ -106,6 +114,13 @@ final class SettingsViewController: UIViewController {
                 ButtonModel(title: "Clear all downloads", style: .standard) { [weak self] in
                     self?.clearAllDownloads()
                 },
+            ], toggles: [
+                ToggleModel(
+                    title: "Wi-Fi only downloads",
+                    isOn: WeDoBooksFacade.shared.configuration.isWifiDownloadOnly
+                ) { isOn in
+                    WeDoBooksFacade.shared.configuration.isWifiDownloadOnly = isOn
+                },
             ]),
             SectionModel(title: "DEVICES", buttons: [
                 ButtonModel(title: "Manage devices", style: .standard) { [weak self] in
@@ -117,6 +132,11 @@ final class SettingsViewController: UIViewController {
                     self?.stopAudio()
                 },
             ]),
+            SectionModel(
+                title: "READER & PLAYER",
+                toggles: readerAndPlayerToggles(),
+                footnote: "Applies the next time a book opens. Resets to the app’s defaults when the app restarts."
+            ),
             SectionModel(title: "APPEARANCE", buttons: [
                 ButtonModel(title: "Toggle dark mode", style: .standard) { [weak self] in
                     self?.toggleDarkMode()
@@ -168,7 +188,72 @@ final class SettingsViewController: UIViewController {
             stack.addArrangedSubview(button)
         }
 
+        for toggleModel in section.toggles {
+            stack.addArrangedSubview(makeToggleRow(model: toggleModel))
+        }
+
+        if let footnote = section.footnote {
+            let label = UILabel()
+            label.text = footnote
+            label.font = .systemFont(ofSize: 13, weight: .regular)
+            label.textColor = .secondaryLabel
+            label.numberOfLines = 0
+            stack.addArrangedSubview(label)
+        }
+
         return stack
+    }
+
+    private func makeToggleRow(model: ToggleModel) -> UIView {
+        let label = UILabel()
+        label.text = model.title
+        label.font = .systemFont(ofSize: 17, weight: .regular)
+        label.textColor = .label
+        label.numberOfLines = 0
+
+        let toggle = UISwitch()
+        toggle.isOn = model.isOn
+        toggle.accessibilityLabel = model.title
+        toggle.addAction(UIAction { action in
+            guard let toggle = action.sender as? UISwitch else { return }
+            model.onChange(toggle.isOn)
+        }, for: .valueChanged)
+
+        let row = UIStackView(arrangedSubviews: [label, toggle])
+        row.axis = .horizontal
+        row.alignment = .center
+        row.spacing = 12
+        row.isLayoutMarginsRelativeArrangement = true
+        row.directionalLayoutMargins = NSDirectionalEdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16)
+        row.heightAnchor.constraint(greaterThanOrEqualToConstant: 50).isActive = true
+        Theme.applyCardStyle(to: row)
+        return row
+    }
+
+    /// Each switch assigns a new configuration that changes only its own value and keeps the
+    /// tap callbacks set in `MainViewController`.
+    private func readerAndPlayerToggles() -> [ToggleModel] {
+        let configuration = WeDoBooksFacade.shared.configuration
+        return [
+            ToggleModel(title: "Player: finish button", isOn: configuration.player.showFinishBookButton) { isOn in
+                configuration.player = configuration.player.with(showFinishBookButton: isOn)
+            },
+            ToggleModel(title: "Player: about book button", isOn: configuration.player.showAboutBookButton) { isOn in
+                configuration.player = configuration.player.with(showAboutBookButton: isOn)
+            },
+            ToggleModel(title: "Player: minimize button", isOn: configuration.player.showMinimizeButton) { isOn in
+                configuration.player = configuration.player.with(showMinimizeButton: isOn)
+            },
+            ToggleModel(title: "Reader: finish button", isOn: configuration.reader.showFinishBookButton) { isOn in
+                configuration.reader = configuration.reader.with(showFinishBookButton: isOn)
+            },
+            ToggleModel(title: "Reader: pull down for reading stats", isOn: configuration.reader.pullDownTop) { isOn in
+                configuration.reader = configuration.reader.with(pullDownTop: isOn)
+            },
+            ToggleModel(title: "Reader: page stack at the top", isOn: configuration.reader.showHeaderAnimation) { isOn in
+                configuration.reader = configuration.reader.with(showHeaderAnimation: isOn)
+            },
+        ]
     }
 
     private func makeButton(model: ButtonModel) -> UIButton {
@@ -264,5 +349,36 @@ final class SettingsViewController: UIViewController {
             ? window.traitCollection.userInterfaceStyle
             : window.overrideUserInterfaceStyle
         window.overrideUserInterfaceStyle = (currentStyle == .dark) ? .light : .dark
+    }
+}
+
+private extension PlayerConfiguration {
+    func with(
+        showMinimizeButton: Bool? = nil,
+        showFinishBookButton: Bool? = nil,
+        showAboutBookButton: Bool? = nil
+    ) -> PlayerConfiguration {
+        PlayerConfiguration(
+            showMinimizeButton: showMinimizeButton ?? self.showMinimizeButton,
+            onTappedMinimizeButton: onTappedMinimizeButton,
+            showFinishBookButton: showFinishBookButton ?? self.showFinishBookButton,
+            onTappedFinishBookButton: onTappedFinishBookButton,
+            showAboutBookButton: showAboutBookButton ?? self.showAboutBookButton
+        )
+    }
+}
+
+private extension ReaderConfiguration {
+    func with(
+        pullDownTop: Bool? = nil,
+        showHeaderAnimation: Bool? = nil,
+        showFinishBookButton: Bool? = nil
+    ) -> ReaderConfiguration {
+        ReaderConfiguration(
+            pullDownTop: pullDownTop ?? self.pullDownTop,
+            showHeaderAnimation: showHeaderAnimation ?? self.showHeaderAnimation,
+            showFinishBookButton: showFinishBookButton ?? self.showFinishBookButton,
+            onTappedFinishBookButton: onTappedFinishBookButton
+        )
     }
 }

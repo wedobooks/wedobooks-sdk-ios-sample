@@ -51,10 +51,10 @@ final class CurrentCheckoutsViewController: UITableViewController {
             do {
                 try await WeDoBooksFacade.shared
                     .bookOperations
-                    .openCheckout(checkout, presentedBy: navigationController ?? self)
+                    .openCheckout(id: checkout.id, presentedBy: navigationController ?? self)
                 remember(checkout)
             } catch {
-                print("openCheckout failed: \(error)")
+                print("openCheckout(id:) failed: \(error)")
             }
         }
     }
