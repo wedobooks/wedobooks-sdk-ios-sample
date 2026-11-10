@@ -378,7 +378,9 @@ private extension ReaderConfiguration {
             pullDownTop: pullDownTop ?? self.pullDownTop,
             showHeaderAnimation: showHeaderAnimation ?? self.showHeaderAnimation,
             showFinishBookButton: showFinishBookButton ?? self.showFinishBookButton,
-            onTappedFinishBookButton: onTappedFinishBookButton
+            onTappedFinishBookButton: onTappedFinishBookButton,
+            highlightCallback: highlightCallback,
+            loadAllHighlightNotes: loadAllHighlightNotes
         )
     }
 }

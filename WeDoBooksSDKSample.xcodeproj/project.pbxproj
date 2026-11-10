@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		520D62F430614896006F0BA3 /* WeDoBooks in Frameworks */ = {isa = PBXBuildFile; productRef = 520D62F330614896006F0BA3 /* WeDoBooks */; };
+		527FDBA130A345F400421294 /* GoogleCast in Frameworks */ = {isa = PBXBuildFile; productRef = 527FDBA030A345F400421294 /* GoogleCast */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -64,6 +65,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				527FDBA130A345F400421294 /* GoogleCast in Frameworks */,
 				520D62F430614896006F0BA3 /* WeDoBooks in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -119,6 +121,7 @@
 			name = WeDoBooksSDKSample;
 			packageProductDependencies = (
 				520D62F330614896006F0BA3 /* WeDoBooks */,
+				527FDBA030A345F400421294 /* GoogleCast */,
 			);
 			productName = WeDoBooksSDKSample;
 			productReference = 6FF358582D8D96AB0012A988 /* WeDoBooksSDKSample.app */;
@@ -150,6 +153,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				520D62F230614896006F0BA3 /* XCRemoteSwiftPackageReference "wedobooks-sdk-ios-spm" */,
+				527FDB9F30A345F400421294 /* XCRemoteSwiftPackageReference "google-cast-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6FF358592D8D96AB0012A988 /* Products */;
@@ -188,7 +192,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 15;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Resources/Info.plist;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
@@ -201,7 +205,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.11.0;
+				MARKETING_VERSION = 1.12.0;
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = io.wedobooks.SampleApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -217,7 +221,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 15;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Resources/Info.plist;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
@@ -230,7 +234,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.11.0;
+				MARKETING_VERSION = 1.12.0;
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = io.wedobooks.SampleApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -394,7 +398,15 @@
 			repositoryURL = "https://github.com/wedobooks/wedobooks-sdk-ios-spm";
 			requirement = {
 				kind = exactVersion;
-				version = 1.11.0;
+				version = 1.12.0;
+			};
+		};
+		527FDB9F30A345F400421294 /* XCRemoteSwiftPackageReference "google-cast-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SRGSSR/google-cast-sdk";
+			requirement = {
+				kind = exactVersion;
+				version = 4.8.4;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -404,6 +416,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 520D62F230614896006F0BA3 /* XCRemoteSwiftPackageReference "wedobooks-sdk-ios-spm" */;
 			productName = WeDoBooks;
+		};
+		527FDBA030A345F400421294 /* GoogleCast */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 527FDB9F30A345F400421294 /* XCRemoteSwiftPackageReference "google-cast-sdk" */;
+			productName = GoogleCast;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -6,6 +6,7 @@
 //
 
 import Combine
+import GoogleCast
 import UIKit
 import WeDoBooksSDK
 
@@ -83,12 +84,14 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
     private let removeDownloadButton = UIButton(title: "Remove download")
     private let downloadStatusButton = UIButton(title: "Get download status")
     private let getChaptersButton = UIButton(title: "Get chapters")
+    private let stopCastingButton = UIButton(title: "Stop casting")
 
     private let checkoutLabel = HeadlessAudiobookViewController.makeStatusLabel("Checkout: not loaded")
     private let stateLabel = HeadlessAudiobookViewController.makeStatusLabel("State: not loaded")
     private let positionLabel = HeadlessAudiobookViewController.makeStatusLabel("Position: n/a")
     private let durationLabel = HeadlessAudiobookViewController.makeStatusLabel("Duration: n/a")
     private let downloadStatusLabel = HeadlessAudiobookViewController.makeStatusLabel("Download statuses: n/a")
+    private let castLabel = HeadlessAudiobookViewController.makeStatusLabel("Casting: no")
 
     private lazy var numberInputAccessoryToolbar: UIToolbar = {
         let toolbar = UIToolbar()
@@ -130,6 +133,7 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
         view.backgroundColor = .systemBackground
         navigationController?.navigationBar.tintColor = .label
 
+        setupCastButton()
         setupViewHierarchy()
         setupKeyboardHandling()
         setupControlActions()
@@ -150,6 +154,7 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         hydrateLoadedSessionState()
+        updateCastState(WeDoBooksFacade.shared.headlessAudioPlayer.isCasting)
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -157,6 +162,13 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
         if isMovingFromParent {
             WeDoBooksFacade.shared.bookOperations.stopAudioPlayer()
         }
+    }
+
+    private func setupCastButton() {
+        guard GCKCastContext.isSharedInstanceInitialized() else { return }
+        let castButton = GCKUICastButton(frame: CGRect(x: 0, y: 0, width: 24, height: 24))
+        castButton.tintColor = .label
+        navigationItem.rightBarButtonItem = UIBarButtonItem(customView: castButton)
     }
 
     private func setupViewHierarchy() {
@@ -216,6 +228,10 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
             HeadlessAudiobookViewController.makeSectionLabel("Chapters"),
             getChaptersButton,
 
+            HeadlessAudiobookViewController.makeSectionLabel("Chromecast"),
+            castLabel,
+            stopCastingButton,
+
             HeadlessAudiobookViewController.makeSectionLabel("Events"),
             eventLogView,
         ].forEach(contentStackView.addArrangedSubview)
@@ -237,6 +253,7 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
             refreshMetricsButton,
             downloadStatusButton,
             getChaptersButton,
+            stopCastingButton,
         ].forEach {
             $0.heightAnchor.constraint(equalToConstant: Constants.controlHeight).isActive = true
         }
@@ -291,6 +308,7 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
         removeDownloadButton.addTarget(self, action: #selector(removeDownloadTapped), for: .touchUpInside)
         downloadStatusButton.addTarget(self, action: #selector(downloadStatusTapped), for: .touchUpInside)
         getChaptersButton.addTarget(self, action: #selector(getChaptersTapped), for: .touchUpInside)
+        stopCastingButton.addTarget(self, action: #selector(stopCastingTapped), for: .touchUpInside)
     }
 
     @objc
@@ -328,6 +346,16 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
                 default:
                     self?.appendLog("headless onError emitted: \(error)")
                 }
+            }
+            .store(in: &cancellables)
+
+        WeDoBooksFacade.shared
+            .headlessAudioPlayer
+            .onCastStateChange
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isCasting in
+                self?.updateCastState(isCasting)
+                self?.appendLog("cast state changed: \(isCasting ? "casting" : "not casting")")
             }
             .store(in: &cancellables)
 
@@ -510,6 +538,23 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
                 appendLog("getAudiobookChapters failed: \(error)")
             }
         }
+    }
+
+    @objc
+    private func stopCastingTapped() {
+        do {
+            try WeDoBooksFacade.shared
+                .headlessAudioPlayer
+                .stopCasting()
+            appendLog("stopCasting() called")
+        } catch {
+            appendLog("stopCasting() failed: \(error)")
+        }
+    }
+
+    private func updateCastState(_ isCasting: Bool) {
+        castLabel.text = "Casting: \(isCasting ? "yes" : "no")"
+        stopCastingButton.isEnabled = isCasting
     }
 
     @objc

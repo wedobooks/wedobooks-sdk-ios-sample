@@ -226,6 +226,22 @@ final class RootTabViewController: UIViewController {
             .store(in: &cancellables)
 
         WeDoBooksFacade.shared
+            .reader
+            .onHighlightError
+            .receive(on: DispatchQueue.main)
+            .sink { error in
+                switch error {
+                case .cfiTooLong:
+                    EventBanner.show("Highlight failed: selection is too long")
+                case .callbackFailed(let underlying):
+                    EventBanner.show("Highlight failed: \(underlying.localizedDescription)")
+                @unknown default:
+                    EventBanner.show("Highlight failed: \(error)")
+                }
+            }
+            .store(in: &cancellables)
+
+        WeDoBooksFacade.shared
             .events
             .sessionInterrupted
             .receive(on: DispatchQueue.main)
