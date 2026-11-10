@@ -6,6 +6,12 @@
 	<string>$(CUSTOM_TOKEN_URL)</string>
 	<key>FirebaseAutomaticScreenReportingEnabled</key>
 	<false/>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_googlecast._tcp</string>
+	</array>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Finds Chromecast devices on your network</string>
 	<key>READER_KEY</key>
 	<string>$(READER_KEY)</string>
 	<key>READER_SECRET</key>

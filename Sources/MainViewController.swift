@@ -66,17 +66,21 @@ class MainViewController: UIViewController {
             fatalError("Path in bundle for SDK Google Info plist file not found: \"\(sdkGoogleInfoFileName)\", named by the \"\(currentEnv.id)\" environment in Environments.swift. Add the file to the app target (or fix the name), then relaunch — any picked environment has been reset to the default (\(EnvironmentCatalog.all[0].displayName))")
         }
 
-        try! WeDoBooksFacade.shared.setup(
-            readerKey: readerKey,
-            readerSecret: readerSecret,
-            mode: currentEnv.mode,
-            firebaseAdapterFactory: FirebaseAdapterFactory(),
-            customProgressConfig: CustomProgressConfig(
-                reader: SampleProgressConfig.customReaderProgress,
-                player: SampleProgressConfig.customPlayerProgress
-            ),
-            firebaseConfigFilePath: sdkGoogleInfoFilePath
-        )
+        do {
+            try WeDoBooksFacade.shared.setup(
+                readerKey: readerKey,
+                readerSecret: readerSecret,
+                mode: currentEnv.mode,
+                firebaseAdapterFactory: FirebaseAdapterFactory(),
+                customProgressConfig: CustomProgressConfig(
+                    reader: SampleProgressConfig.customReaderProgress,
+                    player: SampleProgressConfig.customPlayerProgress
+                ),
+                firebaseConfigFilePath: sdkGoogleInfoFilePath
+            )
+        } catch {
+            fatalError("WeDoBooks SDK setup failed: \(error)")
+        }
         WeDoBooksFacade.shared.localization.setLanguage(.english)
         let localizations: [WeDoBooksFacade.Localization.LocalizationKeys : [WeDoBooksFacade.Localization.Language : String]] = [
             .buttonSave : [.english : "Custom save"],
@@ -99,7 +103,8 @@ class MainViewController: UIViewController {
         WeDoBooksFacade.shared.configuration.reader = ReaderConfiguration(
             onTappedFinishBookButton: { isbn in
                 EventBanner.show("Reader onTappedFinishBookButton: \(isbn)")
-            }
+            },
+            highlightCallback: SampleHighlightStore.shared
         )
 
         WeDoBooksFacade.shared.images.icons.set(.close, to: "sf:xmark.app")
