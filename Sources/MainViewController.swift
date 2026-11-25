@@ -101,8 +101,10 @@ class MainViewController: UIViewController {
             }
         )
         WeDoBooksFacade.shared.configuration.reader = ReaderConfiguration(
+            showFinishBookButton: true,
             onTappedFinishBookButton: { isbn in
                 EventBanner.show("Reader onTappedFinishBookButton: \(isbn)")
+                WeDoBooksFacade.shared.bookOperations.closeReader()
             },
             highlightCallback: SampleHighlightStore.shared
         )

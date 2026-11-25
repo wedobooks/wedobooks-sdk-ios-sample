@@ -31,6 +31,9 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
     private var cancellables: Set<AnyCancellable> = []
     private var audiobookCheckout: Checkout?
     private var loadControlsEnabled = true
+    private var enteredIsbn: String {
+        (isbnField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 
     private let customPlayerProgressEnabled = SampleProgressConfig.customPlayerProgress
 
@@ -278,7 +281,6 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
         if let loadedCheckout = WeDoBooksFacade.shared.headlessAudioPlayer.loadedBook() {
             audiobookCheckout = loadedCheckout
             checkoutLabel.text = "Checkout: \(loadedCheckout.title) (\(loadedCheckout.materialId))"
-            setLoadControlsEnabled(false)
             if stateLabel.text == "State: not loaded" {
                 stateLabel.text = "State: loaded (awaiting runtime update)"
             }
@@ -292,7 +294,6 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
         positionLabel.text = "Position: n/a"
         durationLabel.text = "Duration: n/a"
         downloadStatusLabel.text = "Download statuses: n/a"
-        setLoadControlsEnabled(true)
     }
 
     private func setupControlActions() {
@@ -332,6 +333,7 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
             .onStateChange
             .sink { [weak self] state in
                 self?.stateLabel.text = "State: \(state)"
+                self?.setLoadControlsEnabled(state != .buffering)
                 self?.appendLog("state changed: \(state)")
             }
             .store(in: &cancellables)
@@ -400,7 +402,6 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
                     .headlessAudioPlayer
                     .loadBook(book: checkout, startPosition: startPosition)
                 checkoutLabel.text = "Checkout: \(checkout.title) (\(checkout.materialId))"
-                setLoadControlsEnabled(false)
                 let startDescription = startPosition.map { "\($0)" } ?? "saved bookmark"
                 appendLog("loadBook succeeded (isbn: \(checkout.materialId), start: \(startDescription))")
             } catch {
@@ -411,14 +412,14 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
 
     @objc
     private func loadSampleTapped() {
+        let isbn = enteredIsbn
         Task { @MainActor in
             do {
                 try await WeDoBooksFacade.shared
                     .headlessAudioPlayer
-                    .loadSample(for: isbnField.text ?? "")
-                checkoutLabel.text = "Checkout: sample (\(isbnField.text ?? ""))"
-                setLoadControlsEnabled(false)
-                appendLog("loadSample requested (isbn: \(isbnField.text ?? ""))")
+                    .loadSample(for: isbn)
+                checkoutLabel.text = "Checkout: sample (\(isbn))"
+                appendLog("loadSample requested (isbn: \(isbn))")
             } catch {
                 appendLog("loadSample failed: \(error)")
             }
@@ -520,7 +521,7 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
 
     @objc
     private func getChaptersTapped() {
-        let isbn = (isbnField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let isbn = enteredIsbn
         Task { @MainActor in
             do {
                 let chapters = try await WeDoBooksFacade.shared
@@ -576,14 +577,15 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
 
     @MainActor
     private func ensureDemoAudiobookCheckout() async -> Checkout? {
-        if let audiobookCheckout {
+        let isbn = enteredIsbn
+        if let audiobookCheckout, isbn.isEmpty || audiobookCheckout.materialId == isbn {
             return audiobookCheckout
         }
 
-        appendLog("requesting checkout for audiobook ISBN \(isbnField.text ?? "<none>")")
+        appendLog("requesting checkout for audiobook ISBN \(isbn)")
         let checkoutResult = await WeDoBooksFacade.shared
             .bookOperations
-            .checkoutBook(with: isbnField.text ?? "")
+            .checkoutBook(with: isbn)
 
         switch checkoutResult {
         case .success(let checkout):
@@ -680,7 +682,7 @@ final class HeadlessAudiobookViewController: UIViewController, UITextFieldDelega
 
     private func setLoadControlsEnabled(_ isEnabled: Bool) {
         loadControlsEnabled = isEnabled
-        let hasIsbn = !(isbnField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let hasIsbn = !enteredIsbn.isEmpty
         loadBookButton.isEnabled = isEnabled && hasIsbn
         loadSampleButton.isEnabled = isEnabled && hasIsbn
         // The start-position field only applies with custom player progress enabled; when it's
