@@ -398,7 +398,7 @@
 			repositoryURL = "https://github.com/wedobooks/wedobooks-sdk-ios-spm";
 			requirement = {
 				kind = exactVersion;
-				version = 1.12.0;
+				version = 1.13.0;
 			};
 		};
 		527FDB9F30A345F400421294 /* XCRemoteSwiftPackageReference "google-cast-sdk" */ = {

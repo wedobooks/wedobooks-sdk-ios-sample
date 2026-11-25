@@ -317,8 +317,10 @@ final class CheckoutsViewController: UIViewController {
             return .downloading(percent: Int((status.progress * 100).rounded()))
         case .downloaded:
             return .downloaded
-        case .notDownloaded, .failure, .cancel:
+        case .notDownloaded, .cancel:
             return .notDownloaded
+        case .failure:
+            return status.error == .missingDiskSpace ? .outOfDiskSpace : .notDownloaded
         }
     }
 

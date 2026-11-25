@@ -18,6 +18,7 @@ private struct DeviceRow: Hashable {
     let id: String
     let name: String
     let isActive: Bool
+    let isCurrentDevice: Bool
 }
 
 private final class DeviceRowCell: UITableViewCell {
@@ -49,8 +50,9 @@ private final class DeviceRowCell: UITableViewCell {
     }
 
     func configure(row: DeviceRow) {
+        let currentDeviceSuffix = row.isCurrentDevice ? " (This device)" : ""
         let activeSuffix = row.isActive ? " (Active)" : ""
-        titleLabel.text = row.name + activeSuffix
+        titleLabel.text = row.name + currentDeviceSuffix + activeSuffix
     }
 
     override func setSelected(_ selected: Bool, animated: Bool) {
@@ -153,8 +155,14 @@ final class DevicesViewController: UIViewController, UITableViewDelegate {
 
     private func applyDevices(_ observation: DevicesData?) {
         let activeId = observation?.activeDevice
+        let currentDeviceId = observation?.currentDevice.id
         rows = observation?.devices.map { device in
-            DeviceRow(id: device.id, name: device.name, isActive: device.id == activeId)
+            DeviceRow(
+                id: device.id,
+                name: device.name,
+                isActive: device.id == activeId,
+                isCurrentDevice: device.id == currentDeviceId
+            )
         } ?? []
 
         rows.sort {
